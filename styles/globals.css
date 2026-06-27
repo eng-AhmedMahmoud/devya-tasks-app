@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 245, 245, 245;
+  --background-start-rgb: 10, 10, 10;
+  --background-end-rgb: 15, 15, 15;
+}
+
+html { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; background-color: #0a0a0a; }
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(239, 68, 68, 0.05), transparent 60%),
+    radial-gradient(1000px 700px at 0% 110%, rgba(59, 130, 246, 0.05), transparent 60%),
+    linear-gradient(to bottom, #0a0a0a, #0f0f0f 60%, #0a0a0a);
+  background-attachment: fixed;
+  min-height: 100vh;
+  font-family: var(--font-sora), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
+}
+
+::selection { background-color: #f5f5f5; color: #0a0a0a; }
+
+html::-webkit-scrollbar { width: 8px; }
+html::-webkit-scrollbar-track { background: #141414; }
+html::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; border: 1px solid #2a2a2a; }
+html::-webkit-scrollbar-thumb:hover { background: #444; }
+
+input, textarea, select, button { font-size: 16px; }
+@media (max-width: 768px) {
+  input:focus, textarea:focus, select:focus { font-size: 16px !important; }
+}
+
+.surface {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.surface-strong {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -1px -1px;
+}
+
+.ring-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15), 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #A3A3A3;
+}
+
+.chip-urgent { color: #FCA5A5; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); }
+.chip-important { color: #FCD34D; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); }
+.chip-delayed { color: #93C5FD; border-color: rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.08); }
+.chip-overdue { color: #FCA5A5; border-color: rgba(239, 68, 68, 0.6); background: rgba(239, 68, 68, 0.12); }
+.chip-done { color: #6EE7B7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
