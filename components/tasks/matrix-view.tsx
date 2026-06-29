@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { ListPlus, Loader2, Plus, Repeat, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { todayKey } from '@/lib/dates';
@@ -9,7 +10,6 @@ import { useDialog } from '@/components/ui/dialog-provider';
 import { MatrixInfo } from './matrix-info';
 import { Quadrant } from './quadrant';
 import { TaskCard } from './task-card';
-import { CreateTaskDialog } from './create-task-dialog';
 import { CompleteDialog } from './complete-dialog';
 import { DelayDialog } from './delay-dialog';
 import { TaskDetailDrawer } from './task-detail-drawer';
@@ -26,7 +26,6 @@ export function MatrixView({ user }: MatrixViewProps) {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
   const [completing, setCompleting] = useState<Task | null>(null);
   const [delaying, setDelaying] = useState<Task | null>(null);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
@@ -139,13 +138,13 @@ export function MatrixView({ user }: MatrixViewProps) {
             <Repeat className="h-4 w-4" />
             Add daily tasks
           </a>
-          <button
-            onClick={() => setShowCreate(true)}
+          <Link
+            href="/new"
             className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-medium text-ink-900 hover:bg-ink-200"
           >
             <Plus className="h-4 w-4" />
             New task
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -268,15 +267,6 @@ export function MatrixView({ user }: MatrixViewProps) {
         </div>
       )}
 
-      <CreateTaskDialog
-        open={showCreate}
-        team={team}
-        onClose={() => setShowCreate(false)}
-        onCreated={async () => {
-          setShowCreate(false);
-          await refresh();
-        }}
-      />
       <CompleteDialog
         task={completing}
         onClose={() => setCompleting(null)}
