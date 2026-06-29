@@ -91,6 +91,48 @@ export interface UploadResult {
   format: string;
 }
 
+// ── Meeting requests (booking lifecycle, spec §4)
+
+export type BookingStatus =
+  | 'PENDING'
+  | 'COUNTER_PROPOSED'
+  | 'CONFIRMED'
+  | 'COMPLETED'
+  | 'DECLINED'
+  | 'CANCELLED';
+
+export interface MeetingRequest {
+  id: string;
+  calendarSlug: string;
+  calendarLabel: string;
+  calendarColor: string;
+  clientName: string;
+  clientEmail: string | null;
+  clientPhone: string | null;
+  company: string | null;
+  notes: string | null;
+  scheduledAt: string;
+  durationMinutes: number;
+  status: BookingStatus;
+  acceptedByName: string | null;
+  proposedSlots:
+    | Array<{ scheduledAt: string; durationMinutes: number }>
+    | null;
+  clientPickUrl: string | null;
+  createdAt: string;
+}
+
+export interface AcceptBookingBody {
+  acceptedByName: string;
+  ownerUserId?: string;
+}
+
+export interface CounterProposeBookingBody {
+  slots: Array<{ date: string; time: string; durationMinutes?: number }>;
+  acceptedByName: string;
+  note?: string;
+}
+
 export const api = {
   me: (cookieHeader?: string) => apiFetch<{ user: AuthUser }>('/api/auth/me', { cookieHeader }),
   login: (email: string, password: string) =>
@@ -163,6 +205,27 @@ export const api = {
 
   assessment: (month: string, cookieHeader?: string) =>
     apiFetch<AssessmentResponse>(`/api/admin/assessment/${month}`, { cookieHeader }),
+
+  // ── Booking / Meeting Requests bar (spec §4)
+  listMeetingRequests: (cookieHeader?: string) =>
+    apiFetch<{ items: MeetingRequest[] }>(`/api/admin/bookings/requests`, {
+      cookieHeader,
+    }),
+  acceptBooking: (id: string, body: AcceptBookingBody) =>
+    apiFetch<{ booking: MeetingRequest }>(
+      `/api/admin/bookings/${id}/accept`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  counterProposeBooking: (id: string, body: CounterProposeBookingBody) =>
+    apiFetch<{ booking: MeetingRequest }>(
+      `/api/admin/bookings/${id}/counter-propose`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  declineBooking: (id: string) =>
+    apiFetch<{ booking: MeetingRequest }>(
+      `/api/admin/bookings/${id}/decline`,
+      { method: 'POST' },
+    ),
 
   uploadProof: async (file: File): Promise<UploadResult> => {
     const fd = new FormData();

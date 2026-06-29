@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { Shell } from '@/components/ui/shell';
 import { MatrixView } from '@/components/tasks/matrix-view';
+import { MeetingRequestsBar } from '@/components/bookings/meeting-requests-bar';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ export default async function HomePage() {
     const { user } = await api.me(cookieHeader);
     return (
       <Shell>
+        <MeetingRequestsBar />
         <MatrixView user={user} />
       </Shell>
     );
