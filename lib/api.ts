@@ -143,7 +143,7 @@ export const api = {
   logout: () => apiFetch<void>('/api/auth/logout', { method: 'POST' }),
 
   team: (cookieHeader?: string) =>
-    apiFetch<TeamMember[]>('/api/admin/team/members', { cookieHeader }),
+    apiFetch<TeamMember[]>('/api/admin/task-team/members', { cookieHeader }),
 
   listTasks: (params: { day?: string; from?: string; to?: string; ownerUserId?: string; status?: TaskStatus; active?: boolean } = {}, cookieHeader?: string) => {
     const q = new URLSearchParams();
