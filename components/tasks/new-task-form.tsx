@@ -6,14 +6,13 @@ import Link from 'next/link';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { TeamMember } from '@/lib/types';
+import { OwnerSelect, SOMEONE_ELSE } from '@/components/ui/owner-select';
 
 const CALENDARS = [
   { slug: 'marketing', label: 'Marketing' },
   { slug: 'development', label: 'Development' },
   { slug: 'business', label: 'Business' },
 ];
-
-const SOMEONE_ELSE = '__other__';
 
 export function NewTaskForm() {
   const router = useRouter();
@@ -222,38 +221,15 @@ export function NewTaskForm() {
         </div>
 
         <Field label="Falls upon">
-          {teamLoading ? (
-            <div className="text-xs text-ink-400 inline-flex items-center gap-2">
-              <Loader2 className="h-3 w-3 animate-spin" /> Loading team…
-            </div>
-          ) : (
-            <>
-              <select
-                value={ownerChoice}
-                onChange={(e) => setOwnerChoice(e.target.value)}
-                className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus"
-              >
-                {team.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name ?? m.email}
-                  </option>
-                ))}
-                <option value={SOMEONE_ELSE}>Someone else…</option>
-              </select>
-              {ownerChoice === SOMEONE_ELSE && (
-                <input
-                  value={customOwner}
-                  onChange={(e) => setCustomOwner(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus"
-                  placeholder="Type a name"
-                  maxLength={120}
-                />
-              )}
-              {teamError && (
-                <div className="text-xs text-rose-300 mt-1">Team list failed to load — only "Someone else" available. {teamError}</div>
-              )}
-            </>
-          )}
+          <OwnerSelect
+            team={team}
+            value={ownerChoice}
+            onChange={setOwnerChoice}
+            customName={customOwner}
+            onCustomNameChange={setCustomOwner}
+            loading={teamLoading}
+            error={teamError ? `Team list failed to load — only "Someone else" available. ${teamError}` : null}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">

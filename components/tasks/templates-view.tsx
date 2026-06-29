@@ -5,13 +5,12 @@ import { Loader2, ListPlus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useDialog } from '@/components/ui/dialog-provider';
 import type { DailyTemplate, TeamMember } from '@/lib/types';
+import { OwnerSelect, SOMEONE_ELSE } from '@/components/ui/owner-select';
 import { TemplatePickerDialog } from './template-picker-dialog';
 
 interface TemplatesViewProps {
   isSuperAdmin: boolean;
 }
-
-const SOMEONE_ELSE = '__other__';
 
 export function TemplatesView({ isSuperAdmin: _isSuperAdmin }: TemplatesViewProps) {
   void _isSuperAdmin;
@@ -175,9 +174,13 @@ function TemplateFormDialog({
   const [title, setTitle] = useState(template?.title ?? '');
   const [description, setDescription] = useState(template?.description ?? '');
   const [important, setImportant] = useState(template?.important ?? false);
-  const [ownerChoice, setOwnerChoice] = useState(
-    template?.ownerUserId ?? (template?.ownerName ? SOMEONE_ELSE : team[0]?.id ?? SOMEONE_ELSE),
+  const [ownerChoice, setOwnerChoice] = useState<string>(
+    template?.ownerUserId ?? (template?.ownerName ? SOMEONE_ELSE : ''),
   );
+  useEffect(() => {
+    if (ownerChoice) return;
+    setOwnerChoice(team[0]?.id ?? SOMEONE_ELSE);
+  }, [team, ownerChoice]);
   const [customOwner, setCustomOwner] = useState(template?.ownerName ?? '');
   const [order, setOrder] = useState(template?.order ?? 0);
   const [active, setActive] = useState(template?.active ?? true);
@@ -259,28 +262,16 @@ function TemplateFormDialog({
               />
             </label>
           </div>
-          <label className="block">
+          <div className="block">
             <span className="block text-xs font-medium text-ink-300 mb-1.5">Falls upon</span>
-            <select
+            <OwnerSelect
+              team={team}
               value={ownerChoice}
-              onChange={(e) => setOwnerChoice(e.target.value)}
-              className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100"
-            >
-              {team.map((m) => (
-                <option key={m.id} value={m.id}>{m.name ?? m.email}</option>
-              ))}
-              <option value={SOMEONE_ELSE}>Someone else…</option>
-            </select>
-            {ownerChoice === SOMEONE_ELSE && (
-              <input
-                value={customOwner}
-                onChange={(e) => setCustomOwner(e.target.value)}
-                maxLength={120}
-                className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100"
-                placeholder="Type a name"
-              />
-            )}
-          </label>
+              onChange={setOwnerChoice}
+              customName={customOwner}
+              onCustomNameChange={setCustomOwner}
+            />
+          </div>
           <label className="inline-flex items-center gap-2 text-sm text-ink-200">
             <input
               type="checkbox"

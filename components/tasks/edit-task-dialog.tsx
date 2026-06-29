@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Task, TeamMember } from '@/lib/types';
+import { OwnerSelect, SOMEONE_ELSE } from '@/components/ui/owner-select';
 
 interface EditTaskDialogProps {
   task: Task | null;
@@ -11,8 +12,6 @@ interface EditTaskDialogProps {
   onClose: () => void;
   onSaved: () => void;
 }
-
-const SOMEONE_ELSE = '__other__';
 
 export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogProps) {
   const [title, setTitle] = useState('');
@@ -164,27 +163,13 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
               </div>
             </Field>
             <Field label="Falls upon">
-              <select
+              <OwnerSelect
+                team={team}
                 value={ownerChoice}
-                onChange={(e) => setOwnerChoice(e.target.value)}
-                className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus"
-              >
-                {team.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name ?? m.email}
-                  </option>
-                ))}
-                <option value={SOMEONE_ELSE}>Someone else…</option>
-              </select>
-              {ownerChoice === SOMEONE_ELSE && (
-                <input
-                  value={customOwner}
-                  onChange={(e) => setCustomOwner(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus"
-                  placeholder="Type a name"
-                  maxLength={120}
-                />
-              )}
+                onChange={setOwnerChoice}
+                customName={customOwner}
+                onCustomNameChange={setCustomOwner}
+              />
             </Field>
           </div>
 
