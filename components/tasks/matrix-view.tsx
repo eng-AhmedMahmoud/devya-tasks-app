@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ListPlus, Loader2, Plus, Repeat, Sparkles } from 'lucide-react';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
 import { todayKey } from '@/lib/dates';
 import type { AuthUser, Task, TeamMember } from '@/lib/types';
 import { useDialog } from '@/components/ui/dialog-provider';
@@ -13,6 +13,8 @@ import { CreateTaskDialog } from './create-task-dialog';
 import { CompleteDialog } from './complete-dialog';
 import { DelayDialog } from './delay-dialog';
 import { TaskDetailDrawer } from './task-detail-drawer';
+import { TemplatePickerDialog } from './template-picker-dialog';
+import { EditTaskDialog } from './edit-task-dialog';
 
 interface MatrixViewProps {
   user: AuthUser;
@@ -29,7 +31,8 @@ export function MatrixView({ user }: MatrixViewProps) {
   const [delaying, setDelaying] = useState<Task | null>(null);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [detailRefresh, setDetailRefresh] = useState(0);
-  const [inserting, setInserting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [editing, setEditing] = useState<Task | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -53,18 +56,26 @@ export function MatrixView({ user }: MatrixViewProps) {
       .catch(() => setTeam([]));
   }, [refresh]);
 
-  const quadrantTasks = useMemo(() => {
+  const { carriedOver, quadrantTasks } = useMemo(() => {
     const sortFn = (a: Task, b: Task) => {
       if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
       if (a.important !== b.important) return a.important ? -1 : 1;
       return new Date(a.deadlineAt).getTime() - new Date(b.deadlineAt).getTime();
     };
     const list = [...tasks].sort(sortFn);
+    const carried = list.filter(
+      (t) => t.status === 'DELAYED' && t.delays.length > 0 && t.creationDay !== t.scheduledDay,
+    );
+    const carriedIds = new Set(carried.map((t) => t.id));
+    const rest = list.filter((t) => !carriedIds.has(t.id));
     return {
-      do: list.filter((t) => t.important && (t.urgent || t.overdue)),
-      schedule: list.filter((t) => t.important && !(t.urgent || t.overdue)),
-      delegate: list.filter((t) => !t.important && (t.urgent || t.overdue)),
-      eliminate: list.filter((t) => !t.important && !(t.urgent || t.overdue)),
+      carriedOver: carried,
+      quadrantTasks: {
+        do: rest.filter((t) => t.important && (t.urgent || t.overdue)),
+        schedule: rest.filter((t) => t.important && !(t.urgent || t.overdue)),
+        delegate: rest.filter((t) => !t.important && (t.urgent || t.overdue)),
+        eliminate: rest.filter((t) => !t.important && !(t.urgent || t.overdue)),
+      },
     };
   }, [tasks]);
 
@@ -100,26 +111,9 @@ export function MatrixView({ user }: MatrixViewProps) {
     [dialog, refresh],
   );
 
-  const handleInsertTemplates = useCallback(async () => {
-    setInserting(true);
-    try {
-      const res = await api.insertTemplates();
-      await dialog.notify({
-        title: `Inserted ${res.inserted} tasks`,
-        message: 'Daily template tasks added to today.',
-        tone: 'success',
-      });
-      await refresh();
-    } catch (err) {
-      await dialog.notify({
-        title: 'Insert failed',
-        message: err instanceof ApiError ? err.message : 'Could not insert templates',
-        tone: 'danger',
-      });
-    } finally {
-      setInserting(false);
-    }
-  }, [dialog, refresh]);
+  const handleEdit = useCallback((task: Task) => {
+    setEditing(task);
+  }, []);
 
   return (
     <>
@@ -132,11 +126,10 @@ export function MatrixView({ user }: MatrixViewProps) {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleInsertTemplates}
-            disabled={inserting}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05] disabled:opacity-60"
+            onClick={() => setPickerOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
           >
-            {inserting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListPlus className="h-4 w-4" />}
+            <ListPlus className="h-4 w-4" />
             Insert daily tasks
           </button>
           <a
@@ -162,6 +155,34 @@ export function MatrixView({ user }: MatrixViewProps) {
         <div className="surface px-4 py-3 mb-4 text-sm text-rose-300 border-rose-500/30">{error}</div>
       )}
 
+      {carriedOver.length > 0 && (
+        <section className="surface mb-4 border-blue-500/30">
+          <div className="px-4 py-3 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Delayed tasks from before</h2>
+              <p className="text-xs text-ink-400 mt-0.5">
+                Carried over from earlier days. They stay here until marked Done or deleted.
+              </p>
+            </div>
+            <span className="chip chip-delayed">{carriedOver.length}</span>
+          </div>
+          <div className="p-3 space-y-2">
+            {carriedOver.map((t) => (
+              <TaskCard
+                key={t.id}
+                task={t}
+                role={user.role}
+                onOpen={(task) => setOpenTaskId(task.id)}
+                onMarkDone={handleMarkDone}
+                onDelay={handleDelay}
+                onDelete={handleDelete}
+                onEdit={user.role === 'SUPER_ADMIN' ? handleEdit : undefined}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Quadrant
           number={1}
@@ -178,6 +199,7 @@ export function MatrixView({ user }: MatrixViewProps) {
             onMarkDone={handleMarkDone}
             onDelay={handleDelay}
             onDelete={handleDelete}
+            onEdit={handleEdit}
             emptyHint="Nothing here. That's a win."
           />
         </Quadrant>
@@ -196,6 +218,7 @@ export function MatrixView({ user }: MatrixViewProps) {
             onMarkDone={handleMarkDone}
             onDelay={handleDelay}
             onDelete={handleDelete}
+            onEdit={handleEdit}
             emptyHint="No long-game work scheduled."
           />
         </Quadrant>
@@ -214,6 +237,7 @@ export function MatrixView({ user }: MatrixViewProps) {
             onMarkDone={handleMarkDone}
             onDelay={handleDelay}
             onDelete={handleDelete}
+            onEdit={handleEdit}
             emptyHint="Nothing to hand off."
           />
         </Quadrant>
@@ -232,6 +256,7 @@ export function MatrixView({ user }: MatrixViewProps) {
             onMarkDone={handleMarkDone}
             onDelay={handleDelay}
             onDelete={handleDelete}
+            onEdit={handleEdit}
             emptyHint="Clean."
           />
         </Quadrant>
@@ -277,7 +302,31 @@ export function MatrixView({ user }: MatrixViewProps) {
         onMarkDone={handleMarkDone}
         onDelay={handleDelay}
         onDelete={handleDelete}
+        onEdit={user.role === 'SUPER_ADMIN' ? handleEdit : undefined}
         refreshSignal={detailRefresh}
+      />
+      <TemplatePickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onInserted={async (count) => {
+          setPickerOpen(false);
+          await dialog.notify({
+            title: `Inserted ${count} task${count === 1 ? '' : 's'}`,
+            message: 'Selected templates added to today.',
+            tone: 'success',
+          });
+          await refresh();
+        }}
+      />
+      <EditTaskDialog
+        task={editing}
+        team={team}
+        onClose={() => setEditing(null)}
+        onSaved={async () => {
+          setEditing(null);
+          setDetailRefresh((n) => n + 1);
+          await refresh();
+        }}
       />
     </>
   );
@@ -290,6 +339,7 @@ function Renderer({
   onMarkDone,
   onDelay,
   onDelete,
+  onEdit,
   emptyHint,
 }: {
   tasks: Task[];
@@ -298,6 +348,7 @@ function Renderer({
   onMarkDone: (t: Task) => void;
   onDelay: (t: Task) => void;
   onDelete: (t: Task) => void;
+  onEdit: (t: Task) => void;
   emptyHint: string;
 }) {
   if (tasks.length === 0) {
@@ -319,6 +370,7 @@ function Renderer({
           onMarkDone={onMarkDone}
           onDelay={onDelay}
           onDelete={onDelete}
+          onEdit={onEdit}
         />
       ))}
     </>

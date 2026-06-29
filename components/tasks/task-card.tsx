@@ -13,9 +13,10 @@ interface TaskCardProps {
   onMarkDone: (task: Task) => void;
   onDelay: (task: Task) => void;
   onDelete: (task: Task) => void;
+  onEdit?: (task: Task) => void;
 }
 
-export function TaskCard({ task, role, onOpen, onMarkDone, onDelay, onDelete }: TaskCardProps) {
+export function TaskCard({ task, role, onOpen, onMarkDone, onDelay, onDelete, onEdit }: TaskCardProps) {
   const [menu, setMenu] = useState(false);
   const ownerLabel = task.ownerUser?.name ?? task.ownerName ?? 'Unassigned';
   const latestDelay = task.delays[0];
@@ -130,6 +131,18 @@ export function TaskCard({ task, role, onOpen, onMarkDone, onDelay, onDelete }: 
                 >
                   View details
                 </button>
+                {role === 'SUPER_ADMIN' && onEdit && task.status !== 'DONE' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenu(false);
+                      onEdit(task);
+                    }}
+                    className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
+                  >
+                    Edit task…
+                  </button>
+                )}
                 {role === 'SUPER_ADMIN' && (
                   <button
                     type="button"

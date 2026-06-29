@@ -43,7 +43,7 @@ export function CreateTaskDialog({ open, team, onClose, onCreated }: CreateTaskD
     setTitle('');
     setDescription('');
     setType('NORMAL');
-    setOwnerChoice('');
+    setOwnerChoice(team[0]?.id ?? SOMEONE_ELSE);
     setCustomOwner('');
     setImportant(false);
     const today = new Date();
@@ -57,7 +57,7 @@ export function CreateTaskDialog({ open, team, onClose, onCreated }: CreateTaskD
     setMeetingClientEmail('');
     setMeetingAttendees('');
     setError(null);
-  }, [open]);
+  }, [open, team]);
 
   const needTime = useMemo(() => {
     if (!deadlineDate) return false;
@@ -88,8 +88,15 @@ export function CreateTaskDialog({ open, team, onClose, onCreated }: CreateTaskD
     let ownerName: string | null = null;
     if (ownerChoice === SOMEONE_ELSE) {
       ownerName = customOwner.trim() || null;
+      if (!ownerName) {
+        setError('Type a name for "Someone else"');
+        return;
+      }
     } else if (ownerChoice) {
       ownerUserId = ownerChoice;
+    } else {
+      setError('Pick an owner');
+      return;
     }
 
     let meeting: NonNullable<ReturnType<typeof buildMeeting>> | undefined;
@@ -103,7 +110,7 @@ export function CreateTaskDialog({ open, team, onClose, onCreated }: CreateTaskD
         attendees: meetingAttendees,
       });
       if (!built) {
-        setError('Meeting requires date, time, client name, and client email');
+        setError('Meeting requires date, time, and client name');
         return;
       }
       meeting = built;
@@ -226,7 +233,6 @@ export function CreateTaskDialog({ open, team, onClose, onCreated }: CreateTaskD
               onChange={(e) => setOwnerChoice(e.target.value)}
               className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus"
             >
-              <option value="">Unassigned</option>
               {team.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name ?? m.email}
@@ -287,7 +293,7 @@ export function CreateTaskDialog({ open, team, onClose, onCreated }: CreateTaskD
                     ))}
                   </select>
                 </Field>
-                <Field label="Client email">
+                <Field label="Client email" optional>
                   <input
                     type="email"
                     value={meetingClientEmail}
@@ -379,17 +385,18 @@ function buildMeeting(input: {
   clientEmail: string;
   attendees: string;
 }) {
-  if (!input.date || !input.time || !input.clientName.trim() || !input.clientEmail.trim()) return null;
+  if (!input.date || !input.time || !input.clientName.trim()) return null;
   const attendees = input.attendees
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+  const email = input.clientEmail.trim();
   return {
     date: input.date,
     time: input.time,
     calendarSlug: input.calendarSlug,
     clientName: input.clientName.trim(),
-    clientEmail: input.clientEmail.trim(),
+    clientEmail: email || undefined,
     attendees,
   };
 }

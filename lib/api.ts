@@ -65,7 +65,7 @@ export interface CreateTaskPayload {
     time: string;
     calendarSlug: string;
     clientName: string;
-    clientEmail: string;
+    clientEmail?: string;
     clientPhone?: string;
     company?: string;
     attendees?: string[];
@@ -119,9 +119,9 @@ export const api = {
     apiFetch<Task>('/api/admin/tasks', { method: 'POST', body: JSON.stringify(body) }),
   updateTask: (id: string, body: UpdateTaskPayload) =>
     apiFetch<Task>(`/api/admin/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  delayTask: (id: string, body: { toDay: string; note?: string }) =>
+  delayTask: (id: string, body: { toDay: string; reason: string }) =>
     apiFetch<Task>(`/api/admin/tasks/${id}/delay`, { method: 'POST', body: JSON.stringify(body) }),
-  completeTask: (id: string, body: { imageUrl: string; note?: string }) =>
+  completeTask: (id: string, body: { fileUrl?: string; fileType?: 'image' | 'pdf' | 'html' | 'file'; linkUrl?: string; note?: string }) =>
     apiFetch<Task>(`/api/admin/tasks/${id}/complete`, { method: 'POST', body: JSON.stringify(body) }),
   rateQuality: (id: string, quality: TaskQuality) =>
     apiFetch<Task>(`/api/admin/tasks/${id}/quality`, { method: 'POST', body: JSON.stringify({ quality }) }),
@@ -155,8 +155,11 @@ export const api = {
     apiFetch<DailyTemplate>(`/api/admin/task-templates/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteTemplate: (id: string) =>
     apiFetch<void>(`/api/admin/task-templates/${id}`, { method: 'DELETE' }),
-  insertTemplates: () =>
-    apiFetch<{ inserted: number; taskIds: string[] }>(`/api/admin/task-templates/insert`, { method: 'POST' }),
+  insertTemplates: (templateIds: string[]) =>
+    apiFetch<{ inserted: number; taskIds: string[] }>(`/api/admin/task-templates/insert`, {
+      method: 'POST',
+      body: JSON.stringify({ templateIds }),
+    }),
 
   assessment: (month: string, cookieHeader?: string) =>
     apiFetch<AssessmentResponse>(`/api/admin/assessment/${month}`, { cookieHeader }),
@@ -166,6 +169,22 @@ export const api = {
     fd.append('file', file);
     const base = appConfig.apiUrl;
     const res = await fetch(`${base}/api/admin/uploads`, {
+      method: 'POST',
+      body: fd,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      let body: unknown = null;
+      try { body = await res.json(); } catch {}
+      throw new ApiError(res.status, body, 'Upload failed');
+    }
+    return res.json();
+  },
+  uploadProofFile: async (file: File): Promise<UploadResult> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const base = appConfig.apiUrl;
+    const res = await fetch(`${base}/api/admin/uploads/file`, {
       method: 'POST',
       body: fd,
       credentials: 'include',

@@ -55,7 +55,7 @@ export interface BookingSummary {
   scheduledAt: string;
   durationMinutes: number;
   clientName: string;
-  clientEmail: string;
+  clientEmail: string | null;
 }
 
 export interface Task {
@@ -79,6 +79,9 @@ export interface Task {
   scheduledDay: string;
   completedAt: string | null;
   completionImageUrl: string | null;
+  completionFileUrl: string | null;
+  completionFileType: 'image' | 'pdf' | 'html' | 'file' | null;
+  completionLinkUrl: string | null;
   completionNote: string | null;
   bookingId: string | null;
   booking?: BookingSummary | null;
@@ -119,6 +122,9 @@ export interface AssessmentDoneTask {
   onTime: boolean;
   quality: TaskQuality;
   completionImageUrl: string | null;
+  completionFileUrl: string | null;
+  completionFileType: 'image' | 'pdf' | 'html' | 'file' | null;
+  completionLinkUrl: string | null;
   completionNote: string | null;
 }
 

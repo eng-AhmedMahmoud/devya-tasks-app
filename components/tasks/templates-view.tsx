@@ -5,6 +5,7 @@ import { Loader2, ListPlus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useDialog } from '@/components/ui/dialog-provider';
 import type { DailyTemplate, TeamMember } from '@/lib/types';
+import { TemplatePickerDialog } from './template-picker-dialog';
 
 interface TemplatesViewProps {
   isSuperAdmin: boolean;
@@ -20,7 +21,7 @@ export function TemplatesView({ isSuperAdmin: _isSuperAdmin }: TemplatesViewProp
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<DailyTemplate | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [inserting, setInserting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -36,26 +37,6 @@ export function TemplatesView({ isSuperAdmin: _isSuperAdmin }: TemplatesViewProp
     void refresh();
     api.team().then(setTeam).catch(() => setTeam([]));
   }, [refresh]);
-
-  const insertAll = async () => {
-    setInserting(true);
-    try {
-      const res = await api.insertTemplates();
-      await dialog.notify({
-        title: `Inserted ${res.inserted} tasks`,
-        message: 'Today now has the active templates as tasks.',
-        tone: 'success',
-      });
-    } catch (err) {
-      await dialog.notify({
-        title: 'Insert failed',
-        message: err instanceof Error ? err.message : 'Unknown error',
-        tone: 'danger',
-      });
-    } finally {
-      setInserting(false);
-    }
-  };
 
   const remove = async (tpl: DailyTemplate) => {
     const ok = await dialog.confirm({
@@ -78,11 +59,10 @@ export function TemplatesView({ isSuperAdmin: _isSuperAdmin }: TemplatesViewProp
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={insertAll}
-            disabled={inserting}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05] disabled:opacity-60"
+            onClick={() => setPickerOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
           >
-            {inserting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListPlus className="h-4 w-4" />}
+            <ListPlus className="h-4 w-4" />
             Insert daily tasks
           </button>
           <button
@@ -165,6 +145,18 @@ export function TemplatesView({ isSuperAdmin: _isSuperAdmin }: TemplatesViewProp
           }}
         />
       )}
+      <TemplatePickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onInserted={async (count) => {
+          setPickerOpen(false);
+          await dialog.notify({
+            title: `Inserted ${count} task${count === 1 ? '' : 's'}`,
+            message: 'Selected templates added to today.',
+            tone: 'success',
+          });
+        }}
+      />
     </>
   );
 }
@@ -184,7 +176,7 @@ function TemplateFormDialog({
   const [description, setDescription] = useState(template?.description ?? '');
   const [important, setImportant] = useState(template?.important ?? false);
   const [ownerChoice, setOwnerChoice] = useState(
-    template?.ownerUserId ?? (template?.ownerName ? SOMEONE_ELSE : ''),
+    template?.ownerUserId ?? (template?.ownerName ? SOMEONE_ELSE : team[0]?.id ?? SOMEONE_ELSE),
   );
   const [customOwner, setCustomOwner] = useState(template?.ownerName ?? '');
   const [order, setOrder] = useState(template?.order ?? 0);
@@ -274,7 +266,6 @@ function TemplateFormDialog({
               onChange={(e) => setOwnerChoice(e.target.value)}
               className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100"
             >
-              <option value="">Unassigned</option>
               {team.map((m) => (
                 <option key={m.id} value={m.id}>{m.name ?? m.email}</option>
               ))}

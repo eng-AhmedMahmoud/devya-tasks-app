@@ -4,8 +4,44 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatMonth, monthKey, shiftMonth } from '@/lib/dates';
-import type { AssessmentBucket, AssessmentResponse, TaskQuality, UserRole } from '@/lib/types';
+import type { AssessmentBucket, AssessmentDoneTask, AssessmentResponse, TaskQuality, UserRole } from '@/lib/types';
 import { useDialog } from '@/components/ui/dialog-provider';
+import { appConfig } from '@/lib/config';
+
+function resolveProofUrl(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${appConfig.apiUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function ProofThumb({ task }: { task: AssessmentDoneTask }) {
+  const imgUrl = task.completionFileType === 'image' && task.completionFileUrl
+    ? task.completionFileUrl
+    : task.completionImageUrl;
+  if (imgUrl) {
+    return (
+      <a href={resolveProofUrl(imgUrl)} target="_blank" rel="noreferrer">
+        <img
+          src={resolveProofUrl(imgUrl)}
+          alt="proof"
+          className="h-14 w-20 rounded-md border border-white/10 object-cover"
+        />
+      </a>
+    );
+  }
+  if (task.completionFileUrl) {
+    return (
+      <a
+        href={resolveProofUrl(task.completionFileUrl)}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-xs text-ink-200 hover:bg-white/[0.05]"
+      >
+        {task.completionFileType ?? 'file'}
+      </a>
+    );
+  }
+  return null;
+}
 
 interface AssessmentViewProps {
   role: UserRole;
@@ -157,13 +193,15 @@ function Card({
                     <p className="text-xs text-ink-300 mt-1 whitespace-pre-wrap">{t.completionNote}</p>
                   )}
                 </div>
-                {t.completionImageUrl && (
-                  <a href={t.completionImageUrl} target="_blank" rel="noreferrer">
-                    <img
-                      src={t.completionImageUrl}
-                      alt="proof"
-                      className="h-14 w-20 rounded-md border border-white/10 object-cover"
-                    />
+                <ProofThumb task={t} />
+                {t.completionLinkUrl && (
+                  <a
+                    href={t.completionLinkUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-ink-300 hover:text-white underline"
+                  >
+                    Link
                   </a>
                 )}
                 {isSuperAdmin ? (

@@ -1,11 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, RotateCw, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ExternalLink, FileText, Loader2, Pencil, RotateCw, Trash2, X } from 'lucide-react';
 import { api } from '@/lib/api';
+import { appConfig } from '@/lib/config';
 import { formatDateTime, formatDeadline } from '@/lib/dates';
 import type { Task, UserRole } from '@/lib/types';
 import { AuditTimeline } from './audit-timeline';
+
+function resolveProofUrl(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${appConfig.apiUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+}
 
 interface TaskDetailDrawerProps {
   taskId: string | null;
@@ -14,6 +20,7 @@ interface TaskDetailDrawerProps {
   onMarkDone: (task: Task) => void;
   onDelay: (task: Task) => void;
   onDelete: (task: Task) => void;
+  onEdit?: (task: Task) => void;
   refreshSignal: number;
 }
 
@@ -24,6 +31,7 @@ export function TaskDetailDrawer({
   onMarkDone,
   onDelay,
   onDelete,
+  onEdit,
   refreshSignal,
 }: TaskDetailDrawerProps) {
   const [task, setTask] = useState<Task | null>(null);
@@ -88,14 +96,44 @@ export function TaskDetailDrawer({
                 {task.completedAt && <Cell label="Completed" value={formatDateTime(task.completedAt)} />}
               </dl>
 
-              {task.completionImageUrl && (
+              {(task.completionFileUrl || task.completionLinkUrl || task.completionImageUrl) && (
                 <section>
                   <h3 className="text-sm font-semibold text-white mb-2">Completion proof</h3>
-                  <img
-                    src={task.completionImageUrl}
-                    alt="completion proof"
-                    className="rounded-md border border-white/10 max-h-72 object-contain"
-                  />
+                  {task.completionFileType === 'image' && task.completionFileUrl ? (
+                    <img
+                      src={resolveProofUrl(task.completionFileUrl)}
+                      alt="completion proof"
+                      className="rounded-md border border-white/10 max-h-72 object-contain"
+                    />
+                  ) : task.completionImageUrl ? (
+                    <img
+                      src={resolveProofUrl(task.completionImageUrl)}
+                      alt="completion proof"
+                      className="rounded-md border border-white/10 max-h-72 object-contain"
+                    />
+                  ) : task.completionFileUrl ? (
+                    <a
+                      href={resolveProofUrl(task.completionFileUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Open {task.completionFileType ?? 'file'}
+                      <ExternalLink className="h-3 w-3 text-ink-400" />
+                    </a>
+                  ) : null}
+                  {task.completionLinkUrl && (
+                    <a
+                      href={task.completionLinkUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      {task.completionLinkUrl}
+                    </a>
+                  )}
                   {task.completionNote && (
                     <p className="mt-2 text-sm text-ink-300 whitespace-pre-wrap">{task.completionNote}</p>
                   )}
@@ -122,6 +160,28 @@ export function TaskDetailDrawer({
                   <div className="text-xs uppercase tracking-wider text-ink-400 mb-1">Linked booking</div>
                   <div className="text-white">{task.booking.clientName} · {task.booking.calendarType}</div>
                   <div className="text-ink-400">{formatDateTime(task.booking.scheduledAt)} · {task.booking.durationMinutes}min</div>
+                  {appConfig.adminUrl && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <a
+                        href={`${appConfig.adminUrl}/bookings/${task.booking.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-xs text-ink-200 hover:bg-white/[0.05]"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Open in booking system
+                      </a>
+                      <a
+                        href={`${appConfig.adminUrl}/bookings`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-xs text-ink-200 hover:bg-white/[0.05]"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        See all meetings
+                      </a>
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -131,6 +191,14 @@ export function TaskDetailDrawer({
               </section>
 
               <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-white/[0.06]">
+                {role === 'SUPER_ADMIN' && onEdit && task.status !== 'DONE' && (
+                  <button
+                    onClick={() => onEdit(task)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-sm text-ink-200 hover:bg-white/[0.05]"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </button>
+                )}
                 {task.status !== 'DONE' && (
                   <>
                     <button

@@ -14,14 +14,14 @@ interface DelayDialogProps {
 
 export function DelayDialog({ task, onClose, onDelayed }: DelayDialogProps) {
   const [date, setDate] = useState('');
-  const [note, setNote] = useState('');
+  const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!task) return;
     setDate(addDaysToKey(todayKey(), 1));
-    setNote('');
+    setReason('');
     setError(null);
   }, [task]);
 
@@ -31,10 +31,14 @@ export function DelayDialog({ task, onClose, onDelayed }: DelayDialogProps) {
     e.preventDefault();
     if (!task) return;
     if (!date) return;
+    if (!reason.trim()) {
+      setError('A reason for the delay is required');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      await api.delayTask(task.id, { toDay: date, note: note.trim() || undefined });
+      await api.delayTask(task.id, { toDay: date, reason: reason.trim() });
       onDelayed();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delay');
@@ -77,12 +81,13 @@ export function DelayDialog({ task, onClose, onDelayed }: DelayDialogProps) {
           </label>
           <label className="block">
             <span className="block text-xs font-medium text-ink-300 mb-1.5">
-              Note <span className="text-ink-500">(optional)</span>
+              Reason <span className="text-rose-300">*</span>
             </span>
             <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
               maxLength={400}
+              required
               className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus min-h-[64px]"
               placeholder="Why is it delayed?"
             />
