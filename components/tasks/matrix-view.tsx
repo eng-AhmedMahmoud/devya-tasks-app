@@ -37,7 +37,7 @@ export function MatrixView({ user }: MatrixViewProps) {
     setLoading(true);
     try {
       const day = todayKey();
-      const items = await api.listTasks({ day, active: true });
+      const { items } = await api.listTasks({ day, active: true, pageSize: 200 });
       setTasks(items);
       setError(null);
     } catch (err) {

@@ -5,9 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'https://admin.devya-solutions.com';
+const FORGOT_PASSWORD_URL = `${ADMIN_URL}/forgot-password`;
+const CHANGE_PASSWORD_URL = `${ADMIN_URL}/account/password?required=1`;
+
 export function LoginForm() {
   const params = useSearchParams();
   const from = params.get('from') || '/';
+  const safeFrom = from.startsWith('/') && !from.startsWith('//') ? from : '/';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,8 +24,10 @@ export function LoginForm() {
     setError(null);
     start(async () => {
       try {
-        await api.login(email, password);
-        window.location.assign(from);
+        const res = await api.login(email, password);
+        window.location.assign(
+          res.user.mustChangePassword ? CHANGE_PASSWORD_URL : safeFrom,
+        );
       } catch (err) {
         if (err instanceof ApiError) setError(err.message || 'Invalid credentials');
         else setError('Could not reach the server');
@@ -55,6 +62,11 @@ export function LoginForm() {
           placeholder="••••••••"
         />
       </label>
+      <div className="flex justify-end">
+        <a href={FORGOT_PASSWORD_URL} className="text-xs text-ink-400 hover:text-ink-200 transition-colors">
+          Forgot password?
+        </a>
+      </div>
       {error && (
         <div className="text-sm text-rose-300 rounded-md border border-rose-500/30 bg-rose-500/[0.08] px-3 py-2">
           {error}

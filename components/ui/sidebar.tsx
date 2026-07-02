@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import {
+  BarChart3,
   CalendarDays,
   ExternalLink,
+  FileSignature,
   Grid2x2,
   History,
   LayoutGrid,
+  ListChecks,
   Loader2,
   LogOut,
   Repeat,
@@ -27,12 +30,19 @@ interface NavItem {
 
 const PRIMARY_NAV: NavItem[] = [
   { href: '/', label: 'Priority matrix', icon: Grid2x2, exact: true },
+  { href: '/tasks', label: 'All tasks', icon: ListChecks },
   { href: '/templates', label: 'Daily templates', icon: Repeat },
   { href: '/history', label: 'Daily history', icon: History },
   { href: '/assessment', label: 'Monthly assessment', icon: LayoutGrid },
 ];
 
 const TOOL_NAV: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; sub: string }[] = [
+  ...(appConfig.salesUrl
+    ? [{ href: appConfig.salesUrl, label: 'Sales', icon: BarChart3, sub: 'Pipeline + reps' }]
+    : []),
+  ...(appConfig.contractsUrl
+    ? [{ href: appConfig.contractsUrl, label: 'Contracts', icon: FileSignature, sub: 'Template editor' }]
+    : []),
   ...(appConfig.adminUrl
     ? [{ href: appConfig.adminUrl, label: 'Admin & CMS', icon: CalendarDays, sub: 'Bookings + content' }]
     : []),

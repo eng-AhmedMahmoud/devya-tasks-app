@@ -91,6 +91,13 @@ export interface UploadResult {
   format: string;
 }
 
+export interface PaginatedTasks {
+  items: Task[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 // ── Meeting requests (booking lifecycle, spec §4)
 
 export type BookingStatus =
@@ -145,7 +152,7 @@ export const api = {
   team: (cookieHeader?: string) =>
     apiFetch<TeamMember[]>('/api/admin/task-team/members', { cookieHeader }),
 
-  listTasks: (params: { day?: string; from?: string; to?: string; ownerUserId?: string; status?: TaskStatus; active?: boolean } = {}, cookieHeader?: string) => {
+  listTasks: (params: { day?: string; from?: string; to?: string; ownerUserId?: string; status?: TaskStatus; active?: boolean; page?: number; pageSize?: number } = {}, cookieHeader?: string) => {
     const q = new URLSearchParams();
     if (params.day) q.set('day', params.day);
     if (params.from) q.set('from', params.from);
@@ -153,7 +160,9 @@ export const api = {
     if (params.ownerUserId) q.set('ownerUserId', params.ownerUserId);
     if (params.status) q.set('status', params.status);
     if (params.active !== undefined) q.set('active', String(params.active));
-    return apiFetch<Task[]>(`/api/admin/tasks${q.toString() ? '?' + q.toString() : ''}`, { cookieHeader });
+    if (params.page !== undefined) q.set('page', String(params.page));
+    if (params.pageSize !== undefined) q.set('pageSize', String(params.pageSize));
+    return apiFetch<PaginatedTasks>(`/api/admin/tasks${q.toString() ? '?' + q.toString() : ''}`, { cookieHeader });
   },
   getTask: (id: string, cookieHeader?: string) =>
     apiFetch<Task>(`/api/admin/tasks/${id}`, { cookieHeader }),
