@@ -32,15 +32,6 @@ export default async function TasksListPage({
   );
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
-  // Preserve active filters when moving between pages.
-  const pageHref = (p: number) => {
-    const params = new URLSearchParams();
-    if (sp.status) params.set('status', sp.status);
-    if (p > 1) params.set('page', String(p));
-    const s = params.toString();
-    return s ? `/tasks?${s}` : '/tasks';
-  };
-
   return (
     <Shell>
       <PageHeader title="All tasks" subtitle={`${total} tasks`} />
@@ -50,7 +41,7 @@ export default async function TasksListPage({
         page={page}
         pageCount={pageCount}
         role={role}
-        pageHref={pageHref}
+        status={sp.status}
       />
     </Shell>
   );

@@ -25,7 +25,7 @@ interface TasksListClientProps {
   page: number;
   pageCount: number;
   role: UserRole;
-  pageHref: (p: number) => string;
+  status?: TaskStatus;
 }
 
 export function TasksListClient({
@@ -34,8 +34,16 @@ export function TasksListClient({
   page,
   pageCount,
   role,
-  pageHref,
+  status,
 }: TasksListClientProps) {
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (p > 1) params.set('page', String(p));
+    const s = params.toString();
+    return s ? `/tasks?${s}` : '/tasks';
+  };
+
   const dialog = useDialog();
   const router = useRouter();
   const isSuperAdmin = role === 'SUPER_ADMIN';

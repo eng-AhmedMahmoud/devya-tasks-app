@@ -89,7 +89,7 @@ export function MeetingRequestsBar() {
   }
 
   return (
-    <div className="container mx-auto px-4 pt-4">
+    <div className="container mx-auto px-4 pt-4 pb-6 sm:pb-8">
       <div className="surface-strong border border-amber-400/15 bg-amber-500/[0.04] rounded-2xl p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-3">
           <CalendarClock className="h-4 w-4 text-amber-300" />
