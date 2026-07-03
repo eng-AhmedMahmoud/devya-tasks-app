@@ -179,6 +179,12 @@ export const api = {
   deleteTask: (id: string) =>
     apiFetch<void>(`/api/admin/tasks/${id}`, { method: 'DELETE' }),
 
+  bulkTasks: (ids: string[], action: 'delete') =>
+    apiFetch<{ ok: number; failed: Array<{ id: string; reason: string }> }>(
+      '/api/admin/tasks/bulk',
+      { method: 'POST', body: JSON.stringify({ ids, action }) },
+    ),
+
   historyForDay: (day: string, cookieHeader?: string) =>
     apiFetch<HistoryDay>(`/api/admin/tasks/history/${day}`, { cookieHeader }),
 

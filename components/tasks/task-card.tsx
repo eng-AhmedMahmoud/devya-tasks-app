@@ -14,25 +14,69 @@ interface TaskCardProps {
   onDelay: (task: Task) => void;
   onDelete: (task: Task) => void;
   onEdit?: (task: Task) => void;
+  // Batch mode props (all optional — no-op when absent)
+  batchMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (task: Task, shiftKey: boolean) => void;
 }
 
-export function TaskCard({ task, role, onOpen, onMarkDone, onDelay, onDelete, onEdit }: TaskCardProps) {
+export function TaskCard({
+  task,
+  role,
+  onOpen,
+  onMarkDone,
+  onDelay,
+  onDelete,
+  onEdit,
+  batchMode = false,
+  selected = false,
+  onToggleSelect,
+}: TaskCardProps) {
   const [menu, setMenu] = useState(false);
   const ownerLabel = task.ownerUser?.name ?? task.ownerName ?? 'Unassigned';
   const latestDelay = task.delays[0];
   const showDelayBadge = task.status === 'DELAYED' || task.delays.length > 0;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (batchMode && onToggleSelect) {
+      onToggleSelect(task, e.shiftKey);
+      return;
+    }
+    onOpen(task);
+  };
 
   return (
     <div
       className={cn(
         'group rounded-lg border bg-white/[0.02] p-3 hover:border-white/15 transition-colors text-left w-full',
         task.overdue ? 'border-rose-500/50' : 'border-white/10',
+        batchMode && selected && 'border-blue-500/60 bg-blue-500/[0.06]',
       )}
     >
       <div className="flex items-start gap-2">
+        {/* Batch-mode checkbox */}
+        {batchMode && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect?.(task, e.shiftKey);
+            }}
+            aria-label={selected ? 'Deselect task' : 'Select task'}
+            className="mt-0.5 shrink-0 rounded border border-white/20 h-4 w-4 flex items-center justify-center hover:border-blue-400 transition-colors"
+            style={selected ? { background: '#3B82F6', borderColor: '#3B82F6' } : {}}
+          >
+            {selected && (
+              <svg viewBox="0 0 10 8" fill="none" className="h-2.5 w-2.5">
+                <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
+        )}
+
         <button
           type="button"
-          onClick={() => onOpen(task)}
+          onClick={handleCardClick}
           className="flex-1 min-w-0 text-left"
         >
           <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
@@ -76,89 +120,93 @@ export function TaskCard({ task, role, onOpen, onMarkDone, onDelay, onDelete, on
             )}
           </div>
         </button>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenu((v) => !v);
-            }}
-            className="rounded-md p-1 text-ink-400 hover:text-white hover:bg-white/[0.06]"
-            aria-label="Task actions"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-          {menu && (
-            <>
-              <button
-                type="button"
-                className="fixed inset-0 z-20 cursor-default"
-                onClick={() => setMenu(false)}
-                aria-hidden
-              />
-              <div className="absolute right-0 mt-1 z-30 w-44 rounded-md border border-white/10 bg-ink-800 shadow-xl py-1 text-sm">
-                {task.status !== 'DONE' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenu(false);
-                      onMarkDone(task);
-                    }}
-                    className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
-                  >
-                    Mark done…
-                  </button>
-                )}
-                {task.status !== 'DONE' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenu(false);
-                      onDelay(task);
-                    }}
-                    className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
-                  >
-                    Delay…
-                  </button>
-                )}
+
+        {/* Hide the three-dot menu in batch mode */}
+        {!batchMode && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenu((v) => !v);
+              }}
+              className="rounded-md p-1 text-ink-400 hover:text-white hover:bg-white/[0.06]"
+              aria-label="Task actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {menu && (
+              <>
                 <button
                   type="button"
-                  onClick={() => {
-                    setMenu(false);
-                    onOpen(task);
-                  }}
-                  className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
-                >
-                  View details
-                </button>
-                {role === 'SUPER_ADMIN' && onEdit && task.status !== 'DONE' && (
+                  className="fixed inset-0 z-20 cursor-default"
+                  onClick={() => setMenu(false)}
+                  aria-hidden
+                />
+                <div className="absolute right-0 mt-1 z-30 w-44 rounded-md border border-white/10 bg-ink-800 shadow-xl py-1 text-sm">
+                  {task.status !== 'DONE' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenu(false);
+                        onMarkDone(task);
+                      }}
+                      className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
+                    >
+                      Mark done…
+                    </button>
+                  )}
+                  {task.status !== 'DONE' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenu(false);
+                        onDelay(task);
+                      }}
+                      className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
+                    >
+                      Delay…
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
                       setMenu(false);
-                      onEdit(task);
+                      onOpen(task);
                     }}
                     className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
                   >
-                    Edit task…
+                    View details
                   </button>
-                )}
-                {role === 'SUPER_ADMIN' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenu(false);
-                      onDelete(task);
-                    }}
-                    className="block w-full text-left px-3 py-1.5 text-rose-300 hover:bg-white/[0.06]"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+                  {role === 'SUPER_ADMIN' && onEdit && task.status !== 'DONE' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenu(false);
+                        onEdit(task);
+                      }}
+                      className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
+                    >
+                      Edit task…
+                    </button>
+                  )}
+                  {role === 'SUPER_ADMIN' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenu(false);
+                        onDelete(task);
+                      }}
+                      className="block w-full text-left px-3 py-1.5 text-rose-300 hover:bg-white/[0.06]"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ListPlus, Loader2, Plus, Repeat, Sparkles } from 'lucide-react';
+import { CheckSquare, ListPlus, Loader2, Plus, Repeat, Sparkles, Square } from 'lucide-react';
 import { api } from '@/lib/api';
 import { todayKey } from '@/lib/dates';
 import type { AuthUser, Task, TeamMember } from '@/lib/types';
 import { useDialog } from '@/components/ui/dialog-provider';
+import { BulkToolbar, BULK_DELETE_ACTION } from '@/components/ui/bulk-toolbar';
+import type { BulkResult } from '@/components/ui/bulk-toolbar';
 import { MatrixInfo } from './matrix-info';
 import { Quadrant } from './quadrant';
 import { TaskCard } from './task-card';
@@ -33,6 +35,33 @@ export function MatrixView({ user }: MatrixViewProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
 
+  // ── Batch mode ────────────────────────────────────────────────────────────
+  const isSuperAdmin = user.role === 'SUPER_ADMIN';
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
+  // Anchor for shift+click range selection (ordered list of all visible tasks)
+  const lastClickedId = useRef<string | null>(null);
+
+  const exitBatchMode = useCallback(() => {
+    setBatchMode(false);
+    setSelectedIds(new Set());
+    setBulkResult(null);
+    lastClickedId.current = null;
+  }, []);
+
+  // Escape exits batch mode
+  useEffect(() => {
+    if (!batchMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') exitBatchMode();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [batchMode, exitBatchMode]);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
@@ -55,7 +84,7 @@ export function MatrixView({ user }: MatrixViewProps) {
       .catch(() => setTeam([]));
   }, [refresh]);
 
-  const { carriedOver, quadrantTasks } = useMemo(() => {
+  const { carriedOver, quadrantTasks, allTaskIds } = useMemo(() => {
     const sortFn = (a: Task, b: Task) => {
       if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
       if (a.important !== b.important) return a.important ? -1 : 1;
@@ -75,6 +104,7 @@ export function MatrixView({ user }: MatrixViewProps) {
         delegate: rest.filter((t) => !t.important && (t.urgent || t.overdue)),
         eliminate: rest.filter((t) => !t.important && !(t.urgent || t.overdue)),
       },
+      allTaskIds: list.map((t) => t.id),
     };
   }, [tasks]);
 
@@ -114,6 +144,78 @@ export function MatrixView({ user }: MatrixViewProps) {
     setEditing(task);
   }, []);
 
+  // ── Batch toggle-select with shift+click range ────────────────────────────
+  const handleToggleSelect = useCallback(
+    (task: Task, shiftKey: boolean) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (shiftKey && lastClickedId.current) {
+          // Range: find indices in the master flat list
+          const anchorIdx = allTaskIds.indexOf(lastClickedId.current);
+          const targetIdx = allTaskIds.indexOf(task.id);
+          if (anchorIdx !== -1 && targetIdx !== -1) {
+            const [from, to] = anchorIdx < targetIdx ? [anchorIdx, targetIdx] : [targetIdx, anchorIdx];
+            const shouldSelect = !prev.has(task.id);
+            for (let i = from; i <= to; i++) {
+              if (shouldSelect) next.add(allTaskIds[i]);
+              else next.delete(allTaskIds[i]);
+            }
+          }
+        } else {
+          if (next.has(task.id)) next.delete(task.id);
+          else next.add(task.id);
+        }
+        lastClickedId.current = task.id;
+        return next;
+      });
+    },
+    [allTaskIds],
+  );
+
+  const handleToggleAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const allSelected = allTaskIds.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(allTaskIds);
+    });
+  }, [allTaskIds]);
+
+  // ── Bulk action handler ───────────────────────────────────────────────────
+  const handleBulkAction = useCallback(
+    async (actionId: string) => {
+      if (actionId !== 'delete') return;
+      const ids = Array.from(selectedIds);
+      if (ids.length === 0) return;
+
+      const ok = await dialog.confirm({
+        title: `Permanently delete ${ids.length} task${ids.length === 1 ? '' : 's'}?`,
+        message: 'This cannot be undone.',
+        confirmLabel: 'Delete',
+        tone: 'danger',
+      });
+      if (!ok) return;
+
+      setBulkRunning(true);
+      try {
+        const result = await api.bulkTasks(ids, 'delete');
+        setBulkResult(result);
+        setSelectedIds(new Set());
+        lastClickedId.current = null;
+        await refresh();
+      } catch (err) {
+        await dialog.notify({
+          title: 'Bulk delete failed',
+          message: err instanceof Error ? err.message : 'Unknown error',
+          tone: 'danger',
+        });
+      } finally {
+        setBulkRunning(false);
+      }
+    },
+    [selectedIds, dialog, refresh],
+  );
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
@@ -124,6 +226,25 @@ export function MatrixView({ user }: MatrixViewProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <button
+              onClick={() => {
+                if (batchMode) exitBatchMode();
+                else setBatchMode(true);
+              }}
+              className={
+                batchMode
+                  ? 'inline-flex items-center gap-1.5 rounded-md border border-blue-500/50 bg-blue-500/10 px-3 py-2 text-sm text-blue-300'
+                  : 'inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]'
+              }
+            >
+              {batchMode ? (
+                <><CheckSquare className="h-4 w-4" /> Batch on</>
+              ) : (
+                <><Square className="h-4 w-4" /> Batch</>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setPickerOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
@@ -176,6 +297,9 @@ export function MatrixView({ user }: MatrixViewProps) {
                 onDelay={handleDelay}
                 onDelete={handleDelete}
                 onEdit={user.role === 'SUPER_ADMIN' ? handleEdit : undefined}
+                batchMode={batchMode}
+                selected={selectedIds.has(t.id)}
+                onToggleSelect={handleToggleSelect}
               />
             ))}
           </div>
@@ -200,6 +324,9 @@ export function MatrixView({ user }: MatrixViewProps) {
             onDelete={handleDelete}
             onEdit={handleEdit}
             emptyHint="Nothing here. That's a win."
+            batchMode={batchMode}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
           />
         </Quadrant>
         <Quadrant
@@ -219,6 +346,9 @@ export function MatrixView({ user }: MatrixViewProps) {
             onDelete={handleDelete}
             onEdit={handleEdit}
             emptyHint="No long-game work scheduled."
+            batchMode={batchMode}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
           />
         </Quadrant>
         <Quadrant
@@ -238,6 +368,9 @@ export function MatrixView({ user }: MatrixViewProps) {
             onDelete={handleDelete}
             onEdit={handleEdit}
             emptyHint="Nothing to hand off."
+            batchMode={batchMode}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
           />
         </Quadrant>
         <Quadrant
@@ -257,6 +390,9 @@ export function MatrixView({ user }: MatrixViewProps) {
             onDelete={handleDelete}
             onEdit={handleEdit}
             emptyHint="Clean."
+            batchMode={batchMode}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
           />
         </Quadrant>
       </div>
@@ -265,6 +401,22 @@ export function MatrixView({ user }: MatrixViewProps) {
         <div className="mt-4 text-xs text-ink-500 inline-flex items-center gap-2">
           <Loader2 className="h-3.5 w-3.5 animate-spin" /> Refreshing…
         </div>
+      )}
+
+      {/* Batch toolbar (shown when batchMode active) */}
+      {batchMode && (
+        <BulkToolbar
+          visibleCount={allTaskIds.length}
+          selectedIds={selectedIds}
+          allVisibleIds={allTaskIds}
+          onToggleAll={handleToggleAll}
+          onClear={() => setSelectedIds(new Set())}
+          onAction={handleBulkAction}
+          actions={[BULK_DELETE_ACTION]}
+          running={bulkRunning}
+          result={bulkResult}
+          onDismissResult={() => setBulkResult(null)}
+        />
       )}
 
       <CompleteDialog
@@ -331,6 +483,9 @@ function Renderer({
   onDelete,
   onEdit,
   emptyHint,
+  batchMode,
+  selectedIds,
+  onToggleSelect,
 }: {
   tasks: Task[];
   role: AuthUser['role'];
@@ -340,6 +495,9 @@ function Renderer({
   onDelete: (t: Task) => void;
   onEdit: (t: Task) => void;
   emptyHint: string;
+  batchMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (task: Task, shiftKey: boolean) => void;
 }) {
   if (tasks.length === 0) {
     return (
@@ -361,6 +519,9 @@ function Renderer({
           onDelay={onDelay}
           onDelete={onDelete}
           onEdit={onEdit}
+          batchMode={batchMode}
+          selected={selectedIds?.has(t.id)}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </>
