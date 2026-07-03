@@ -2,20 +2,7 @@
 
 import { formatDateTime } from '@/lib/dates';
 import type { TaskEvent } from '@/lib/types';
-
-const EVENT_LABEL: Record<string, string> = {
-  CREATED: 'Created',
-  UPDATED: 'Updated',
-  ASSIGNED: 'Assigned',
-  IMPORTANCE_CHANGED: 'Importance changed',
-  STATUS_CHANGED: 'Status changed',
-  DELAYED: 'Delayed (manual)',
-  AUTO_DELAYED: 'Auto-delayed (overdue)',
-  COMPLETED: 'Completed',
-  QUALITY_RATED: 'Quality rated',
-  BOOKING_LINKED: 'Booking linked',
-  DELETED: 'Deleted',
-};
+import { useT } from '@/lib/i18n/client';
 
 const EVENT_COLOR: Record<string, string> = {
   CREATED: '#A3A3A3',
@@ -32,8 +19,9 @@ const EVENT_COLOR: Record<string, string> = {
 };
 
 export function AuditTimeline({ events }: { events: TaskEvent[] }) {
+  const t = useT();
   if (!events.length) {
-    return <div className="text-sm text-ink-400">No events recorded yet.</div>;
+    return <div className="text-sm text-ink-400">{t('audit.empty')}</div>;
   }
   return (
     <ol className="space-y-3">
@@ -46,12 +34,12 @@ export function AuditTimeline({ events }: { events: TaskEvent[] }) {
           />
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-baseline gap-2">
-              <span className="text-sm font-medium text-white">{EVENT_LABEL[ev.type] ?? ev.type}</span>
+              <span className="text-sm font-medium text-white">{t(`audit.events.${ev.type}`) === `audit.events.${ev.type}` ? ev.type : t(`audit.events.${ev.type}`)}</span>
               <span className="text-[11px] text-ink-500">{formatDateTime(ev.createdAt)}</span>
               {ev.actor?.name && (
-                <span className="text-[11px] text-ink-400">by {ev.actor.name}</span>
+                <span className="text-[11px] text-ink-400">{t('common.byUser', { name: ev.actor.name })}</span>
               )}
-              {!ev.actor && <span className="text-[11px] text-ink-500">by system</span>}
+              {!ev.actor && <span className="text-[11px] text-ink-500">{t('common.bySystem')}</span>}
             </div>
             {ev.payload != null && (
               <pre className="mt-1 text-[11px] text-ink-400 whitespace-pre-wrap break-words font-mono">

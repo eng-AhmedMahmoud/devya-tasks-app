@@ -5,6 +5,7 @@ import { Loader2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Task, TeamMember } from '@/lib/types';
 import { OwnerSelect, SOMEONE_ELSE } from '@/components/ui/owner-select';
+import { useT } from '@/lib/i18n/client';
 
 interface EditTaskDialogProps {
   task: Task | null;
@@ -14,6 +15,7 @@ interface EditTaskDialogProps {
 }
 
 export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogProps) {
+  const t = useT();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [ownerChoice, setOwnerChoice] = useState<string>('');
@@ -53,11 +55,11 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
     if (!task) return;
     setError(null);
     if (!title.trim()) {
-      setError('Title is required');
+      setError(t('newTask.errors.titleRequired'));
       return;
     }
     if (!deadlineDate) {
-      setError('Deadline is required');
+      setError(t('newTask.errors.deadlineRequired'));
       return;
     }
     const deadlineHasTime = needTime;
@@ -70,13 +72,13 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
     if (ownerChoice === SOMEONE_ELSE) {
       ownerName = customOwner.trim() || null;
       if (!ownerName) {
-        setError('Type a name for "Someone else"');
+        setError(t('newTask.errors.someoneElseName'));
         return;
       }
     } else if (ownerChoice) {
       ownerUserId = ownerChoice;
     } else {
-      setError('Pick an owner');
+      setError(t('newTask.errors.ownerRequired'));
       return;
     }
 
@@ -93,7 +95,7 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
       });
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : t('editTask.saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -110,17 +112,17 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
           type="button"
           onClick={onClose}
           className="absolute right-3 top-3 rounded-md p-1.5 text-ink-400 hover:bg-white/[0.06] hover:text-white"
-          aria-label="Close"
+          aria-label={t('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
         <div className="p-6 space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Edit task</h2>
-            <p className="text-sm text-ink-400">Change task fields. Changes are saved and timestamped in the audit timeline.</p>
+            <h2 className="text-lg font-semibold text-white">{t('editTask.title')}</h2>
+            <p className="text-sm text-ink-400">{t('editTask.subtitle')}</p>
           </div>
 
-          <Field label="Title">
+          <Field label={t('newTask.fTitle')}>
             <input
               autoFocus
               value={title}
@@ -130,7 +132,7 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
             />
           </Field>
 
-          <Field label="Description" optional>
+          <Field label={t('newTask.fDescription')} optional>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -140,11 +142,11 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Important?">
+            <Field label={t('newTask.fImportant')}>
               <div className="flex gap-2">
                 {[
-                  { v: true, l: 'Yes' },
-                  { v: false, l: 'No' },
+                  { v: true, l: t('common.yes') },
+                  { v: false, l: t('common.no') },
                 ].map((opt) => (
                   <button
                     key={String(opt.v)}
@@ -162,7 +164,7 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
                 ))}
               </div>
             </Field>
-            <Field label="Falls upon">
+            <Field label={t('newTask.fOwner')}>
               <OwnerSelect
                 team={team}
                 value={ownerChoice}
@@ -174,7 +176,7 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Deadline date">
+            <Field label={t('newTask.fDeadlineDate')}>
               <input
                 type="date"
                 value={deadlineDate}
@@ -183,7 +185,7 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
               />
             </Field>
             {needTime ? (
-              <Field label="Deadline time (within 2 days)">
+              <Field label={t('newTask.fDeadlineTime')}>
                 <input
                   type="time"
                   value={deadlineTime}
@@ -193,7 +195,7 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
               </Field>
             ) : (
               <div className="text-xs text-ink-400 self-end pb-2">
-                Date-only deadline (more than 2 days away).
+                {t('newTask.dateOnly')}
               </div>
             )}
           </div>
@@ -210,7 +212,7 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
             onClick={onClose}
             className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-sm text-ink-200 hover:bg-white/[0.05]"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -218,7 +220,7 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
             className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-1.5 text-sm font-medium text-ink-900 hover:bg-ink-200 disabled:opacity-60"
           >
             {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Save changes
+            {t('common.saveChanges')}
           </button>
         </div>
       </form>
@@ -227,10 +229,11 @@ export function EditTaskDialog({ task, team, onClose, onSaved }: EditTaskDialogP
 }
 
 function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) {
+  const t = useT();
   return (
     <label className="block">
       <span className="block text-xs font-medium text-ink-300 mb-1.5">
-        {label} {optional && <span className="text-ink-500">(optional)</span>}
+        {label} {optional && <span className="text-ink-500">{t('common.optional')}</span>}
       </span>
       {children}
     </label>

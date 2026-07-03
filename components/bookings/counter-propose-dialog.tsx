@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { CalendarPlus, Loader2, Trash2, UserRound, X } from 'lucide-react';
 import { api, type MeetingRequest } from '@/lib/api';
 import type { TeamMember } from '@/lib/types';
+import { useT } from '@/lib/i18n/client';
 
 interface SlotInput {
   date: string;
@@ -21,6 +22,7 @@ export function CounterProposeDialog({
   request: MeetingRequest;
   onClose: (changed: boolean) => void;
 }) {
+  const t = useT();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [ownerUserId, setOwnerUserId] = useState<string>('');
   const [customName, setCustomName] = useState<string>('');
@@ -52,14 +54,14 @@ export function CounterProposeDialog({
     const acceptedByName =
       picked?.name?.trim() || picked?.email || customName.trim();
     if (!acceptedByName) {
-      setErr('Pick a team member or enter a name — needed for the meeting task.');
+      setErr(t('meetings.counterErrorOwner'));
       return;
     }
     const cleaned = slots
       .map((s) => ({ date: s.date.trim(), time: s.time.trim() }))
       .filter((s) => s.date && s.time);
     if (cleaned.length === 0) {
-      setErr('Add at least one date + time.');
+      setErr(t('meetings.counterErrorSlot'));
       return;
     }
     setBusy(true);
@@ -71,7 +73,7 @@ export function CounterProposeDialog({
       });
       onClose(true);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Could not propose slots');
+      setErr(e instanceof Error ? e.message : t('meetings.counterFailed'));
       setBusy(false);
     }
   }
@@ -81,9 +83,9 @@ export function CounterProposeDialog({
       <div className="w-full max-w-xl surface-strong p-6 rounded-2xl">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Choose other times</h3>
+            <h3 className="text-lg font-semibold text-white">{t('meetings.counterTitle')}</h3>
             <p className="text-sm text-ink-300 mt-1">
-              Offer {request.clientName} alternative slots — they&apos;ll pick one by email.
+              {t('meetings.counterSubtitle', { name: request.clientName })}
             </p>
           </div>
           <button
@@ -132,12 +134,12 @@ export function CounterProposeDialog({
           className="inline-flex items-center gap-1.5 text-xs text-ink-200 hover:text-white disabled:opacity-50"
         >
           <CalendarPlus className="h-3.5 w-3.5" />
-          Add another time
+          {t('meetings.addTime')}
         </button>
 
         <div className="mt-5">
           <label className="block text-xs uppercase tracking-wider text-ink-400 mb-1.5">
-            Owner — runs this meeting if the client picks one
+            {t('meetings.counterOwnerLabel')}
           </label>
           <div className="grid grid-cols-2 gap-1.5">
             {team.map((m) => {
@@ -168,21 +170,21 @@ export function CounterProposeDialog({
               setCustomName(e.target.value);
               setOwnerUserId('');
             }}
-            placeholder="Or someone else (name)"
+            placeholder={t('meetings.orSomeoneElsePlaceholder')}
             className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-ink-500 focus:outline-none focus:border-white/30"
           />
         </div>
 
         <div className="mt-4">
           <label className="block text-xs uppercase tracking-wider text-ink-400 mb-1.5">
-            Note to the client (optional)
+            {t('meetings.clientNoteLabel')}
           </label>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
             className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-ink-500 focus:outline-none focus:border-white/30"
-            placeholder="Any context to include in the email"
+            placeholder={t('meetings.clientNotePlaceholder')}
           />
         </div>
 
@@ -198,7 +200,7 @@ export function CounterProposeDialog({
             onClick={() => onClose(false)}
             className="rounded-md border border-white/10 px-3 py-2 text-sm text-ink-200 hover:bg-white/5"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -207,7 +209,7 @@ export function CounterProposeDialog({
             className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium text-ink-900 hover:bg-ink-200 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Send proposed times
+            {t('meetings.counterSubmit')}
           </button>
         </div>
       </div>

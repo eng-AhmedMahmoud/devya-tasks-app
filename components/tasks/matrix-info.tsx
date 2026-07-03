@@ -3,48 +3,46 @@
 import { useState } from 'react';
 import { ChevronDown, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 
 const QUADRANTS = [
   {
     n: 1,
-    title: 'Do',
+    titleKey: 'matrix.quadrants.doTitle',
     accent: '#EF4444',
-    sub: 'Important + Urgent',
-    body:
-      'These tasks are both valuable and time-sensitive. They require your immediate attention because they directly affect your goals or responsibilities and cannot be postponed.',
-    example: "Fixing your company's website after it goes offline.",
+    subKey: 'matrix.quadrants.doSubtitle',
+    bodyKey: 'matrix.info.doBody',
+    exampleKey: 'matrix.info.doExample',
   },
   {
     n: 2,
-    title: 'Schedule',
+    titleKey: 'matrix.quadrants.scheduleTitle',
     accent: '#3B82F6',
-    sub: 'Important + Not Urgent',
-    body:
-      "These tasks are essential for long-term success but don't need to be completed immediately. They are often the first to be postponed because there is no immediate pressure, even though they create the greatest future value.",
-    example: 'Developing a long-term business strategy.',
+    subKey: 'matrix.quadrants.scheduleSubtitle',
+    bodyKey: 'matrix.info.scheduleBody',
+    exampleKey: 'matrix.info.scheduleExample',
   },
   {
     n: 3,
-    title: 'Delegate',
+    titleKey: 'matrix.quadrants.delegateTitle',
     accent: '#F59E0B',
-    sub: 'Not Important + Urgent',
-    body:
-      "These tasks need to be completed soon, but they do not require your specific expertise. Since they don't significantly contribute to your highest priorities, they should be assigned to someone else whenever possible.",
-    example: 'Scheduling appointments.',
+    subKey: 'matrix.quadrants.delegateSubtitle',
+    bodyKey: 'matrix.info.delegateBody',
+    exampleKey: 'matrix.info.delegateExample',
   },
   {
     n: 4,
-    title: 'Eliminate',
+    titleKey: 'matrix.quadrants.eliminateTitle',
     accent: '#737373',
-    sub: 'Not Important + Not Urgent',
-    body:
-      'These activities neither contribute to your goals nor require immediate action. They consume time without providing meaningful value and should be minimized or avoided.',
-    example: 'Mindlessly scrolling through social media.',
+    subKey: 'matrix.quadrants.eliminateSubtitle',
+    bodyKey: 'matrix.info.eliminateBody',
+    exampleKey: 'matrix.info.eliminateExample',
   },
 ];
 
 export function MatrixInfo() {
   const [open, setOpen] = useState(false);
+  const t = useT();
   return (
     <div className="surface mb-6">
       <button
@@ -54,7 +52,7 @@ export function MatrixInfo() {
       >
         <span className="flex items-center gap-2 text-sm font-medium text-white">
           <Info className="h-4 w-4 text-ink-400" />
-          How to use the Eisenhower matrix
+          {t('matrix.info.toggle')}
         </span>
         <ChevronDown className={cn('h-4 w-4 text-ink-400 transition-transform', open && 'rotate-180')} />
       </button>
@@ -69,33 +67,35 @@ export function MatrixInfo() {
                 >
                   {q.n}
                 </span>
-                <div className="text-sm font-semibold text-white">{q.title}</div>
-                <div className="text-[11px] uppercase tracking-wider text-ink-400">{q.sub}</div>
+                <div className="text-sm font-semibold text-white">{t(q.titleKey)}</div>
+                <div className="text-[11px] uppercase tracking-wider text-ink-400">{t(q.subKey)}</div>
               </div>
-              <p className="mt-2 text-sm text-ink-200 leading-relaxed">{q.body}</p>
-              <p className="mt-2 text-xs italic text-ink-400">Example: {q.example}</p>
+              <p className="mt-2 text-sm text-ink-200 leading-relaxed">{t(q.bodyKey)}</p>
+              <p className="mt-2 text-xs italic text-ink-400">
+                {t('matrix.info.example', { text: t(q.exampleKey) })}
+              </p>
             </div>
           ))}
           <div className="md:col-span-2 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
-            <div className="text-sm font-semibold text-white mb-2">How to use the matrix</div>
-            <p className="text-sm text-ink-200">Whenever a new task appears, ask yourself:</p>
+            <div className="text-sm font-semibold text-white mb-2">{t('matrix.info.howTitle')}</div>
+            <p className="text-sm text-ink-200">{t('matrix.info.howIntro')}</p>
             <ol className="mt-1 text-sm text-ink-200 list-decimal pl-5 space-y-0.5">
-              <li>Is this important?</li>
-              <li>Is this urgent?</li>
+              <li>{t('matrix.info.howQ1')}</li>
+              <li>{t('matrix.info.howQ2')}</li>
             </ol>
-            <p className="mt-2 text-sm text-ink-200">Your answers determine where the task belongs:</p>
+            <p className="mt-2 text-sm text-ink-200">{t('matrix.info.howResultIntro')}</p>
             <ul className="mt-1 text-sm text-ink-200 space-y-0.5 pl-2">
               <li>
-                Yes + Yes → <span className="font-semibold text-white">Do it now.</span>
+                {t('matrix.info.howYesYes')} <span className="font-semibold text-white">{t('matrix.info.howYesYesDo')}</span>
               </li>
               <li>
-                Yes + No → <span className="font-semibold text-white">Schedule it.</span>
+                {t('matrix.info.howYesNo')} <span className="font-semibold text-white">{t('matrix.info.howYesNoDo')}</span>
               </li>
               <li>
-                No + Yes → <span className="font-semibold text-white">Delegate it if possible.</span>
+                {t('matrix.info.howNoYes')} <span className="font-semibold text-white">{t('matrix.info.howNoYesDo')}</span>
               </li>
               <li>
-                No + No → <span className="font-semibold text-white">Eliminate it.</span>
+                {t('matrix.info.howNoNo')} <span className="font-semibold text-white">{t('matrix.info.howNoNoDo')}</span>
               </li>
             </ul>
           </div>

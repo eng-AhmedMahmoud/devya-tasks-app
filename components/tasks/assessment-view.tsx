@@ -7,6 +7,7 @@ import { formatMonth, monthKey, shiftMonth } from '@/lib/dates';
 import type { AssessmentBucket, AssessmentDoneTask, AssessmentResponse, TaskQuality, UserRole } from '@/lib/types';
 import { useDialog } from '@/components/ui/dialog-provider';
 import { appConfig } from '@/lib/config';
+import { useT } from '@/lib/i18n/client';
 
 function resolveProofUrl(url: string): string {
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -49,6 +50,7 @@ interface AssessmentViewProps {
 
 export function AssessmentView({ role }: AssessmentViewProps) {
   const dialog = useDialog();
+  const t = useT();
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const [month, setMonth] = useState(() => monthKey(new Date()));
   const [data, setData] = useState<AssessmentResponse | null>(null);
@@ -63,11 +65,11 @@ export function AssessmentView({ role }: AssessmentViewProps) {
       const res = await api.assessment(month);
       setData(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+      setError(err instanceof Error ? err.message : t('matrix.failedToLoad'));
     } finally {
       setLoading(false);
     }
-  }, [month]);
+  }, [month, t]);
 
   useEffect(() => {
     void refresh();
@@ -80,8 +82,8 @@ export function AssessmentView({ role }: AssessmentViewProps) {
       await refresh();
     } catch (err) {
       await dialog.notify({
-        title: 'Could not rate task',
-        message: err instanceof Error ? err.message : 'Unknown error',
+        title: t('assessment.rateFailed'),
+        message: err instanceof Error ? err.message : t('common.unknownError'),
         tone: 'danger',
       });
     } finally {
@@ -93,16 +95,16 @@ export function AssessmentView({ role }: AssessmentViewProps) {
     <>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Monthly assessment</h1>
+          <h1 className="text-2xl font-semibold text-white">{t('assessment.title')}</h1>
           <p className="text-sm text-ink-400 mt-1">
-            Per-employee ratios for {data ? formatMonth(data.month) : formatMonth(month)}. All ratios use the total number of tasks assigned that month as the denominator.
+            {t('assessment.subtitle', { month: data ? formatMonth(data.month) : formatMonth(month) })}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMonth((m) => shiftMonth(m, -1))}
             className="rounded-md border border-white/10 bg-white/[0.02] p-2 text-ink-200 hover:bg-white/[0.05]"
-            aria-label="Previous month"
+            aria-label={t('assessment.prevMonth')}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -115,7 +117,7 @@ export function AssessmentView({ role }: AssessmentViewProps) {
           <button
             onClick={() => setMonth((m) => shiftMonth(m, 1))}
             className="rounded-md border border-white/10 bg-white/[0.02] p-2 text-ink-200 hover:bg-white/[0.05]"
-            aria-label="Next month"
+            aria-label={t('assessment.nextMonth')}
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -124,7 +126,7 @@ export function AssessmentView({ role }: AssessmentViewProps) {
 
       {loading && (
         <div className="text-sm text-ink-400 inline-flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t('common.loading')}
         </div>
       )}
       {error && <div className="text-sm text-rose-300">{error}</div>}
@@ -132,7 +134,7 @@ export function AssessmentView({ role }: AssessmentViewProps) {
       {data && (
         <div className="space-y-6">
           {data.buckets.length === 0 && (
-            <div className="surface px-4 py-8 text-center text-ink-400">No tasks recorded this month.</div>
+            <div className="surface px-4 py-8 text-center text-ink-400">{t('assessment.empty')}</div>
           )}
           {data.buckets.map((b) => (
             <Card
@@ -160,79 +162,85 @@ function Card({
   onRate: (taskId: string, quality: TaskQuality) => Promise<void>;
   ratingId: string | null;
 }) {
+  const t = useT();
   return (
     <article className="surface p-5 space-y-4">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold text-white">{bucket.name}</h2>
         <div className="text-xs text-ink-400">
-          {bucket.totals.total} tasks total · {bucket.totals.done} done · {bucket.totals.onTime} on time · {bucket.totals.highQuality} high quality
+          {t('assessment.totals', {
+            total: bucket.totals.total,
+            done: bucket.totals.done,
+            onTime: bucket.totals.onTime,
+            highQuality: bucket.totals.highQuality,
+          })}
         </div>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Ratio label="Accomplishing" value={bucket.ratios.accomplishing} />
-        <Ratio label="On time" value={bucket.ratios.onTime} />
-        <Ratio label="Quality" value={bucket.ratios.quality} />
-        <Ratio label="Overall" value={bucket.ratios.overall} accent />
+        <Ratio label={t('assessment.accomplishing')} value={bucket.ratios.accomplishing} />
+        <Ratio label={t('assessment.onTime')} value={bucket.ratios.onTime} />
+        <Ratio label={t('assessment.qualityScore')} value={bucket.ratios.quality} />
+        <Ratio label={t('assessment.overall')} value={bucket.ratios.overall} accent />
       </div>
 
       <section>
-        <h3 className="text-sm font-semibold text-white mb-2">Quality assessment</h3>
+        <h3 className="text-sm font-semibold text-white mb-2">{t('assessment.qualitySection')}</h3>
         {bucket.doneTasks.length === 0 ? (
-          <div className="text-xs text-ink-500">No completed tasks to rate yet.</div>
+          <div className="text-xs text-ink-500">{t('assessment.noneToRate')}</div>
         ) : (
           <ul className="divide-y divide-white/[0.05]">
-            {bucket.doneTasks.map((t) => (
-              <li key={t.id} className="py-3 flex flex-wrap items-start gap-3">
+            {bucket.doneTasks.map((task) => (
+              <li key={task.id} className="py-3 flex flex-wrap items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-white">{t.title}</div>
+                  <div className="text-sm font-medium text-white">{task.title}</div>
                   <div className="text-[11px] text-ink-400 mt-0.5">
-                    {t.onTime ? 'On time' : 'Late'} · current rating: {t.quality}
+                    {task.onTime ? t('assessment.onTimeLabel') : t('assessment.lateLabel')} · {t('assessment.currentRating', { quality: task.quality })}
                   </div>
-                  {t.completionNote && (
-                    <p className="text-xs text-ink-300 mt-1 whitespace-pre-wrap">{t.completionNote}</p>
+                  {task.completionNote && (
+                    <p className="text-xs text-ink-300 mt-1 whitespace-pre-wrap">{task.completionNote}</p>
                   )}
                 </div>
-                <ProofThumb task={t} />
-                {t.completionLinkUrl && (
+                <ProofThumb task={task} />
+                {task.completionLinkUrl && (
                   <a
-                    href={t.completionLinkUrl}
+                    href={task.completionLinkUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-ink-300 hover:text-white underline"
                   >
-                    Link
+                    {t('assessment.linkLabel')}
                   </a>
                 )}
                 {isSuperAdmin ? (
                   <div className="inline-flex gap-1">
                     <button
-                      onClick={() => onRate(t.id, 'LOW')}
-                      disabled={ratingId === t.id}
+                      onClick={() => onRate(task.id, 'LOW')}
+                      disabled={ratingId === task.id}
                       className={
                         'rounded-md border px-2.5 py-1 text-xs ' +
-                        (t.quality === 'LOW'
+                        (task.quality === 'LOW'
                           ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
                           : 'border-white/10 bg-white/[0.02] text-ink-300 hover:bg-white/[0.06]')
                       }
                     >
-                      Low
+                      {t('assessment.rateLow')}
                     </button>
                     <button
-                      onClick={() => onRate(t.id, 'HIGH')}
-                      disabled={ratingId === t.id}
+                      onClick={() => onRate(task.id, 'HIGH')}
+                      disabled={ratingId === task.id}
                       className={
                         'rounded-md border px-2.5 py-1 text-xs ' +
-                        (t.quality === 'HIGH'
+                        (task.quality === 'HIGH'
                           ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
                           : 'border-white/10 bg-white/[0.02] text-ink-300 hover:bg-white/[0.06]')
                       }
                     >
-                      High
+                      {t('assessment.rateHigh')}
                     </button>
                   </div>
                 ) : (
-                  <span className="text-xs text-ink-500">Super Admin only</span>
+                  <span className="text-xs text-ink-500">{t('assessment.superAdminOnly')}</span>
                 )}
               </li>
             ))}

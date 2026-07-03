@@ -5,7 +5,10 @@ const config: Config = {
   theme: {
     container: { center: true, padding: '1.5rem', screens: { '2xl': '1400px' } },
     extend: {
-      fontFamily: { sora: ['var(--font-sora)', 'system-ui', 'sans-serif'] },
+      fontFamily: {
+        sora: ['var(--font-sora)', 'system-ui', 'sans-serif'],
+        cairo: ['var(--font-cairo)', 'system-ui', 'sans-serif'],
+      },
       colors: {
         ink: {
           950: '#0A0A0A', 900: '#0F0F0F', 850: '#141414', 800: '#1A1A1A',

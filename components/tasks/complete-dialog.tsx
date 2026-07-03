@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FileText, Link as LinkIcon, Loader2, Upload, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Task } from '@/lib/types';
+import { useT } from '@/lib/i18n/client';
 
 interface CompleteDialogProps {
   task: Task | null;
@@ -25,6 +26,7 @@ function classifyFile(file: File): FileType {
 }
 
 export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogProps) {
+  const t = useT();
   const [mode, setMode] = useState<ProofMode>('file');
   const [file, setFile] = useState<File | null>(null);
   const [link, setLink] = useState('');
@@ -61,11 +63,11 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
     if (!task) return;
     setError(null);
     if (mode === 'file' && !file) {
-      setError('Upload a file or switch to link');
+      setError(t('complete.fileRequired'));
       return;
     }
     if (mode === 'link' && !link.trim()) {
-      setError('Paste a URL or switch to file');
+      setError(t('complete.linkRequired'));
       return;
     }
     setBusy(true);
@@ -81,7 +83,7 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
       } else {
         const url = link.trim();
         if (!/^https?:\/\//i.test(url)) {
-          setError('Link must start with http:// or https://');
+          setError(t('complete.linkInvalid'));
           setBusy(false);
           return;
         }
@@ -92,7 +94,7 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
       }
       onCompleted();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to complete task');
+      setError(err instanceof Error ? err.message : t('complete.failed'));
     } finally {
       setBusy(false);
     }
@@ -109,15 +111,15 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
           type="button"
           onClick={onClose}
           className="absolute right-3 top-3 rounded-md p-1.5 text-ink-400 hover:bg-white/[0.06] hover:text-white"
-          aria-label="Close"
+          aria-label={t('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
         <div className="p-6 space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Mark done</h2>
+            <h2 className="text-lg font-semibold text-white">{t('complete.title')}</h2>
             <p className="text-sm text-ink-400 mt-1">
-              Attach a proof (file or link) for <span className="text-white">"{task.title}"</span>.
+              {t('complete.subtitle', { title: task.title })}
             </p>
           </div>
 
@@ -132,7 +134,7 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
                   : 'border-white/10 bg-white/[0.02] text-ink-300 hover:bg-white/[0.04]')
               }
             >
-              <FileText className="h-3.5 w-3.5" /> File upload
+              <FileText className="h-3.5 w-3.5" /> {t('complete.modeFile')}
             </button>
             <button
               type="button"
@@ -144,13 +146,13 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
                   : 'border-white/10 bg-white/[0.02] text-ink-300 hover:bg-white/[0.04]')
               }
             >
-              <LinkIcon className="h-3.5 w-3.5" /> Link / URL
+              <LinkIcon className="h-3.5 w-3.5" /> {t('complete.modeLink')}
             </button>
           </div>
 
           {mode === 'file' ? (
             <div>
-              <span className="block text-xs font-medium text-ink-300 mb-1.5">Proof file</span>
+              <span className="block text-xs font-medium text-ink-300 mb-1.5">{t('complete.proofFile')}</span>
               {file ? (
                 <div className="space-y-2">
                   {preview && (
@@ -171,14 +173,14 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
                     }}
                     className="text-xs text-ink-400 underline"
                   >
-                    Choose a different file
+                    {t('complete.differentFile')}
                   </button>
                 </div>
               ) : (
                 <label className="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-white/10 bg-white/[0.02] px-4 py-8 cursor-pointer hover:border-white/20">
                   <Upload className="h-5 w-5 text-ink-400" />
-                  <span className="text-sm text-ink-200">Click to choose a file</span>
-                  <span className="text-xs text-ink-500">Image, PDF, HTML, or any file up to 20 MB</span>
+                  <span className="text-sm text-ink-200">{t('complete.chooseFile')}</span>
+                  <span className="text-xs text-ink-500">{t('complete.fileHint')}</span>
                   <input
                     ref={fileRef}
                     type="file"
@@ -191,12 +193,12 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
             </div>
           ) : (
             <label className="block">
-              <span className="block text-xs font-medium text-ink-300 mb-1.5">Link / URL</span>
+              <span className="block text-xs font-medium text-ink-300 mb-1.5">{t('complete.linkLabel')}</span>
               <input
                 type="url"
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
-                placeholder="https://…"
+                placeholder={t('complete.linkPlaceholder')}
                 className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus"
               />
             </label>
@@ -204,14 +206,14 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
 
           <label className="block">
             <span className="block text-xs font-medium text-ink-300 mb-1.5">
-              Note <span className="text-ink-500">(optional)</span>
+              {t('complete.note')} <span className="text-ink-500">{t('common.optional')}</span>
             </span>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               maxLength={2000}
               className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus min-h-[80px]"
-              placeholder="What was done?"
+              placeholder={t('complete.notePlaceholder')}
             />
           </label>
 
@@ -227,7 +229,7 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
             onClick={onClose}
             className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-sm text-ink-200 hover:bg-white/[0.05]"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -235,7 +237,7 @@ export function CompleteDialog({ task, onClose, onCompleted }: CompleteDialogPro
             className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-1.5 text-sm font-medium text-ink-900 hover:bg-emerald-400 disabled:opacity-60"
           >
             {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Confirm done
+            {t('complete.submit')}
           </button>
         </div>
       </form>

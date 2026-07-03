@@ -7,9 +7,11 @@ import { useDialog } from '@/components/ui/dialog-provider';
 import { appConfig } from '@/lib/config';
 import { AcceptRequestDialog } from './accept-request-dialog';
 import { CounterProposeDialog } from './counter-propose-dialog';
+import { useT } from '@/lib/i18n/client';
 
 export function MeetingRequestsBar() {
   const dialog = useDialog();
+  const t = useT();
   const [items, setItems] = useState<MeetingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -67,9 +69,13 @@ export function MeetingRequestsBar() {
 
   async function decline(req: MeetingRequest) {
     const ok = await dialog.confirm({
-      title: 'Decline this meeting request?',
-      message: `${req.clientName} (${req.clientEmail ?? 'no email'}) — ${formatWhen(req.scheduledAt)}.`,
-      confirmLabel: 'Decline',
+      title: t('meetings.declineTitle'),
+      message: t('meetings.declineMessage', {
+        name: req.clientName,
+        email: req.clientEmail ?? t('meetings.noEmail'),
+        when: formatWhen(req.scheduledAt),
+      }),
+      confirmLabel: t('meetings.decline'),
       tone: 'danger',
     });
     if (!ok) return;
@@ -79,8 +85,8 @@ export function MeetingRequestsBar() {
       await refresh();
     } catch (e) {
       void dialog.notify({
-        title: 'Heads up',
-        message: e instanceof Error ? e.message : 'Could not decline',
+        title: t('meetings.headsUp'),
+        message: e instanceof Error ? e.message : t('meetings.declineFailed'),
         tone: 'warn',
       });
     } finally {
@@ -94,7 +100,7 @@ export function MeetingRequestsBar() {
         <div className="flex items-center gap-2 mb-3">
           <CalendarClock className="h-4 w-4 text-amber-300" />
           <h2 className="text-sm font-semibold text-white tracking-tight">
-            Meeting requests
+            {t('meetings.title')}
           </h2>
           <span className="rounded-full bg-amber-500/15 text-amber-200 px-2 py-0.5 text-[11px] font-medium">
             {visible.length}
@@ -116,7 +122,7 @@ export function MeetingRequestsBar() {
                 </div>
                 <div className="text-xs text-ink-300 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span>
-                    needs a meeting on{' '}
+                    {t('meetings.needsMeeting')}{' '}
                     <span className="text-white">{formatWhen(req.scheduledAt)}</span>
                   </span>
                   <span
@@ -132,7 +138,7 @@ export function MeetingRequestsBar() {
                   {req.status === 'COUNTER_PROPOSED' && (
                     <span className="inline-flex items-center gap-1 text-[10px] text-amber-200">
                       <Send className="h-3 w-3" />
-                      Waiting on client to pick
+                      {t('meetings.waitingOnClient')}
                     </span>
                   )}
                 </div>
@@ -149,7 +155,7 @@ export function MeetingRequestsBar() {
                   className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-50"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Accept
+                  {t('meetings.accept')}
                 </button>
                 <button
                   type="button"
@@ -158,7 +164,7 @@ export function MeetingRequestsBar() {
                   className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-ink-100 hover:bg-white/[0.08] disabled:opacity-50"
                 >
                   <CalendarClock className="h-3.5 w-3.5" />
-                  Choose other times
+                  {t('meetings.chooseOther')}
                 </button>
                 <button
                   type="button"
@@ -169,7 +175,7 @@ export function MeetingRequestsBar() {
                   {busyId === req.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : null}
-                  Decline
+                  {t('meetings.decline')}
                 </button>
               </div>
             </li>
@@ -201,6 +207,7 @@ export function MeetingRequestsBar() {
 
 function CopyLink({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
+  const t = useT();
   return (
     <button
       type="button"
@@ -217,7 +224,7 @@ function CopyLink({ url }: { url: string }) {
       title={url}
     >
       <Copy className="h-3 w-3" />
-      {copied ? 'Copied' : 'Copy pick link'}
+      {copied ? t('meetings.copied') : t('meetings.copyLink')}
     </button>
   );
 }

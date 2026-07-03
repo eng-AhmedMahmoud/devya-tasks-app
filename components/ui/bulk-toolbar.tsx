@@ -3,10 +3,12 @@
 import { useEffect, useRef } from 'react';
 import { Loader2, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 
 export interface BulkAction {
   id: string;
-  label: string;
+  labelKey?: string;
+  label?: string;
   icon?: React.ReactNode;
   tone?: 'danger' | 'default';
   disabled?: boolean;
@@ -49,6 +51,7 @@ export function BulkToolbar({
   onDismissResult,
   className,
 }: BulkToolbarProps) {
+  const t = useT();
   const n = selectedIds.size;
   const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.has(id));
 
@@ -72,19 +75,19 @@ export function BulkToolbar({
         className,
       )}
       role="toolbar"
-      aria-label="Batch actions"
+      aria-label={t('bulk.aria')}
     >
       {/* Result banner */}
       {result && (
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-sm text-white">
-            <span className="text-emerald-400 font-medium">{result.ok} deleted</span>
+            <span className="text-emerald-400 font-medium">{t('bulk.deletedN', { count: result.ok })}</span>
             {result.failed.length > 0 && (
               <>
                 {' · '}
                 <details className="inline">
                   <summary className="cursor-pointer text-amber-400 font-medium">
-                    {result.failed.length} skipped
+                    {t('bulk.skippedN', { count: result.failed.length })}
                   </summary>
                   <ul className="absolute bottom-full mb-2 left-0 surface px-3 py-2 space-y-1 text-xs text-ink-300 max-h-40 overflow-y-auto w-80">
                     {result.failed.map((f) => (
@@ -101,7 +104,7 @@ export function BulkToolbar({
           <button
             onClick={onDismissResult}
             className="ml-auto rounded p-1 text-ink-400 hover:text-white"
-            aria-label="Dismiss"
+            aria-label={t('bulk.dismissAria')}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -114,20 +117,20 @@ export function BulkToolbar({
           {/* Count + select-all / clear */}
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-sm font-medium text-white whitespace-nowrap">
-              {n} selected
+              {t('bulk.selected', { count: n })}
             </span>
             <button
               onClick={onToggleAll}
               disabled={running}
               className="text-xs text-ink-300 hover:text-white disabled:opacity-40 whitespace-nowrap"
             >
-              {allSelected ? 'Deselect all' : `Select all ${visibleCount}`}
+              {allSelected ? t('bulk.deselectAll') : t('bulk.selectAllVisible', { count: visibleCount })}
             </button>
             <button
               onClick={onClear}
               disabled={running}
               className="text-xs text-ink-500 hover:text-ink-300 disabled:opacity-40"
-              aria-label="Clear selection"
+              aria-label={t('bulk.clearAria')}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -153,7 +156,7 @@ export function BulkToolbar({
               ) : (
                 action.icon
               )}
-              {action.label}
+              {action.labelKey ? t(action.labelKey) : action.label}
             </button>
           ))}
         </>
@@ -165,7 +168,7 @@ export function BulkToolbar({
 /** Default delete action descriptor (re-use across views) */
 export const BULK_DELETE_ACTION: BulkAction = {
   id: 'delete',
-  label: 'Delete',
+  labelKey: 'bulk.deleteAction',
   icon: <Trash2 className="h-3.5 w-3.5" />,
   tone: 'danger',
 };

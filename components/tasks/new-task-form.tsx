@@ -7,15 +7,17 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { TeamMember } from '@/lib/types';
 import { OwnerSelect, SOMEONE_ELSE } from '@/components/ui/owner-select';
+import { useT } from '@/lib/i18n/client';
 
 const CALENDARS = [
-  { slug: 'marketing', label: 'Marketing' },
-  { slug: 'development', label: 'Development' },
-  { slug: 'business', label: 'Business' },
+  { slug: 'marketing', labelKey: 'newTask.calendarMarketing' },
+  { slug: 'development', labelKey: 'newTask.calendarDevelopment' },
+  { slug: 'business', labelKey: 'newTask.calendarBusiness' },
 ];
 
 export function NewTaskForm() {
   const router = useRouter();
+  const t = useT();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [teamLoading, setTeamLoading] = useState(true);
   const [teamError, setTeamError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function NewTaskForm() {
       .catch((err) => {
         setTeam([]);
         setOwnerChoice(SOMEONE_ELSE);
-        setTeamError(err instanceof Error ? err.message : 'Failed to load team');
+        setTeamError(err instanceof Error ? err.message : t('matrix.failedToLoad'));
       })
       .finally(() => setTeamLoading(false));
   }, []);
@@ -72,11 +74,11 @@ export function NewTaskForm() {
     e.preventDefault();
     setError(null);
     if (!title.trim()) {
-      setError('Title is required');
+      setError(t('newTask.errors.titleRequired'));
       return;
     }
     if (!deadlineDate) {
-      setError('Deadline is required');
+      setError(t('newTask.errors.deadlineRequired'));
       return;
     }
     const deadlineHasTime = needTime;
@@ -89,13 +91,13 @@ export function NewTaskForm() {
     if (ownerChoice === SOMEONE_ELSE) {
       ownerName = customOwner.trim() || null;
       if (!ownerName) {
-        setError('Type a name for "Someone else"');
+        setError(t('newTask.errors.someoneElseName'));
         return;
       }
     } else if (ownerChoice) {
       ownerUserId = ownerChoice;
     } else {
-      setError('Pick an owner');
+      setError(t('newTask.errors.ownerRequired'));
       return;
     }
 
@@ -110,7 +112,7 @@ export function NewTaskForm() {
         attendees: meetingAttendees,
       });
       if (!built) {
-        setError('Meeting requires date, time, and client name');
+        setError(t('newTask.errors.meetingRequired'));
         return;
       }
       meeting = built;
@@ -132,7 +134,7 @@ export function NewTaskForm() {
       router.push('/');
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create task');
+      setError(err instanceof Error ? err.message : t('newTask.errors.createFailed'));
     } finally {
       setBusy(false);
     }
@@ -145,62 +147,62 @@ export function NewTaskForm() {
           href="/"
           className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-sm text-ink-200 hover:bg-white/[0.05]"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to matrix
+          <ArrowLeft className="h-3.5 w-3.5" /> {t('newTask.backToMatrix')}
         </Link>
       </div>
 
       <div>
-        <h1 className="text-2xl font-semibold text-white">New task</h1>
-        <p className="text-sm text-ink-400 mt-1">Add a task to the priority matrix.</p>
+        <h1 className="text-2xl font-semibold text-white">{t('newTask.title')}</h1>
+        <p className="text-sm text-ink-400 mt-1">{t('newTask.subtitle')}</p>
       </div>
 
       <div className="surface p-6 space-y-4">
-        <Field label="Title">
+        <Field label={t('newTask.fTitle')}>
           <input
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-[15px] text-ink-100 focus:outline-none focus:border-white/30 ring-focus"
-            placeholder="e.g. Send weekly status report"
+            placeholder={t('newTask.titlePlaceholder')}
             maxLength={200}
           />
         </Field>
 
-        <Field label="Description" optional>
+        <Field label={t('newTask.fDescription')} optional>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus min-h-[80px]"
             maxLength={4000}
-            placeholder="Optional notes"
+            placeholder={t('newTask.descriptionPlaceholder')}
           />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Type">
+          <Field label={t('newTask.fType')}>
             <div className="flex gap-2">
-              {(['NORMAL', 'MEETING'] as const).map((t) => (
+              {(['NORMAL', 'MEETING'] as const).map((k) => (
                 <button
-                  key={t}
+                  key={k}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => setType(k)}
                   className={
                     'flex-1 rounded-md border px-3 py-2 text-sm ' +
-                    (type === t
+                    (type === k
                       ? 'border-white/30 bg-white/[0.06] text-white'
                       : 'border-white/10 bg-white/[0.02] text-ink-300 hover:bg-white/[0.04]')
                   }
                 >
-                  {t === 'NORMAL' ? 'Normal' : 'Meeting'}
+                  {k === 'NORMAL' ? t('newTask.typeNormal') : t('newTask.typeMeeting')}
                 </button>
               ))}
             </div>
           </Field>
-          <Field label="Important?">
+          <Field label={t('newTask.fImportant')}>
             <div className="flex gap-2">
               {[
-                { v: true, l: 'Yes' },
-                { v: false, l: 'No' },
+                { v: true, l: t('common.yes') },
+                { v: false, l: t('common.no') },
               ].map((opt) => (
                 <button
                   key={String(opt.v)}
@@ -220,7 +222,7 @@ export function NewTaskForm() {
           </Field>
         </div>
 
-        <Field label="Falls upon">
+        <Field label={t('newTask.fOwner')}>
           <OwnerSelect
             team={team}
             value={ownerChoice}
@@ -228,12 +230,12 @@ export function NewTaskForm() {
             customName={customOwner}
             onCustomNameChange={setCustomOwner}
             loading={teamLoading}
-            error={teamError ? `Team list failed to load — only "Someone else" available. ${teamError}` : null}
+            error={teamError ? t('newTask.errors.teamLoadFailed', { error: teamError }) : null}
           />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Deadline date">
+          <Field label={t('newTask.fDeadlineDate')}>
             <input
               type="date"
               value={deadlineDate}
@@ -242,7 +244,7 @@ export function NewTaskForm() {
             />
           </Field>
           {needTime ? (
-            <Field label="Deadline time (within 2 days)">
+            <Field label={t('newTask.fDeadlineTime')}>
               <input
                 type="time"
                 value={deadlineTime}
@@ -252,16 +254,16 @@ export function NewTaskForm() {
             </Field>
           ) : (
             <div className="text-xs text-ink-400 self-end pb-2">
-              Date-only deadline (more than 2 days away).
+              {t('newTask.dateOnly')}
             </div>
           )}
         </div>
 
         {type === 'MEETING' && (
           <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4 space-y-3">
-            <div className="text-sm font-semibold text-white">Meeting details (booking)</div>
+            <div className="text-sm font-semibold text-white">{t('newTask.meetingHeader')}</div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Calendar">
+              <Field label={t('newTask.fCalendar')}>
                 <select
                   value={meetingCalendar}
                   onChange={(e) => setMeetingCalendar(e.target.value)}
@@ -269,12 +271,12 @@ export function NewTaskForm() {
                 >
                   {CALENDARS.map((c) => (
                     <option key={c.slug} value={c.slug}>
-                      {c.label}
+                      {t(c.labelKey)}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Field label="Client email" optional>
+              <Field label={t('newTask.fClientEmail')} optional>
                 <input
                   type="email"
                   value={meetingClientEmail}
@@ -284,7 +286,7 @@ export function NewTaskForm() {
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Date">
+              <Field label={t('newTask.fMeetingDate')}>
                 <input
                   type="date"
                   value={meetingDate}
@@ -292,7 +294,7 @@ export function NewTaskForm() {
                   className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30"
                 />
               </Field>
-              <Field label="Time">
+              <Field label={t('newTask.fMeetingTime')}>
                 <input
                   type="time"
                   value={meetingTime}
@@ -301,19 +303,19 @@ export function NewTaskForm() {
                 />
               </Field>
             </div>
-            <Field label="Client name">
+            <Field label={t('newTask.fClientName')}>
               <input
                 value={meetingClientName}
                 onChange={(e) => setMeetingClientName(e.target.value)}
                 className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30"
               />
             </Field>
-            <Field label="Attendees" optional>
+            <Field label={t('newTask.fAttendees')} optional>
               <input
                 value={meetingAttendees}
                 onChange={(e) => setMeetingAttendees(e.target.value)}
                 className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30"
-                placeholder="comma-separated emails"
+                placeholder={t('newTask.attendeesPlaceholder')}
               />
             </Field>
           </div>
@@ -331,7 +333,7 @@ export function NewTaskForm() {
           href="/"
           className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
         >
-          Cancel
+          {t('common.cancel')}
         </Link>
         <button
           type="submit"
@@ -339,7 +341,7 @@ export function NewTaskForm() {
           className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium text-ink-900 hover:bg-ink-200 disabled:opacity-60"
         >
           {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          Create task
+          {t('newTask.submit')}
         </button>
       </div>
     </form>
@@ -347,10 +349,11 @@ export function NewTaskForm() {
 }
 
 function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) {
+  const t = useT();
   return (
     <label className="block">
       <span className="block text-xs font-medium text-ink-300 mb-1.5">
-        {label} {optional && <span className="text-ink-500">(optional)</span>}
+        {label} {optional && <span className="text-ink-500">{t('common.optional')}</span>}
       </span>
       {children}
     </label>

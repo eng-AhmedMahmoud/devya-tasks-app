@@ -5,6 +5,8 @@ import { Shell } from '@/components/ui/shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { TasksListClient } from '@/components/tasks/tasks-list-client';
 import type { TaskStatus } from '@/lib/types';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionary';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,10 +33,12 @@ export default async function TasksListPage({
     cookieHeader,
   );
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const dict = getDictionary(await getLocale());
+  const subtitle = dict.tasks.totalCount.replace('{count}', String(total));
 
   return (
     <Shell>
-      <PageHeader title="All tasks" subtitle={`${total} tasks`} />
+      <PageHeader title={dict.tasks.title} subtitle={subtitle} />
       <TasksListClient
         tasks={tasks}
         total={total}

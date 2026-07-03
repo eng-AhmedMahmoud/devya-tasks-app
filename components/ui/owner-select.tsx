@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, User } from 'lucide-react';
 import type { TeamMember } from '@/lib/types';
+import { useT } from '@/lib/i18n/client';
 
 export const SOMEONE_ELSE = '__other__';
 
@@ -27,6 +28,7 @@ export function OwnerSelect({
 }: OwnerSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const t = useT();
 
   useEffect(() => {
     if (!open) return;
@@ -47,12 +49,12 @@ export function OwnerSelect({
   const selected = team.find((m) => m.id === value);
   const isOther = value === SOMEONE_ELSE;
   const label = loading
-    ? 'Loading team…'
+    ? t('owner.loading')
     : selected
       ? selected.name ?? selected.email
       : isOther
-        ? 'Someone else…'
-        : 'Pick an owner';
+        ? t('owner.someoneElse')
+        : t('owner.pick');
 
   return (
     <div className="relative" ref={ref}>
@@ -116,7 +118,7 @@ export function OwnerSelect({
               role="option"
               aria-selected={isOther}
             >
-              <span>Someone else…</span>
+              <span>{t('owner.someoneElse')}</span>
               {isOther && <Check className="h-3.5 w-3.5 text-ink-300 shrink-0" />}
             </button>
           </li>
@@ -128,7 +130,7 @@ export function OwnerSelect({
           value={customName}
           onChange={(e) => onCustomNameChange(e.target.value)}
           className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-ink-100 focus:outline-none focus:border-white/30 ring-focus"
-          placeholder="Type a name"
+          placeholder={t('owner.typeName')}
           maxLength={120}
         />
       )}

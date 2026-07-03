@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Info, Loader2, X } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 
 type Tone = 'default' | 'danger' | 'warn' | 'success' | 'info';
 
@@ -54,6 +55,7 @@ const TONE_BUTTON: Record<Tone, string> = {
 
 export function DialogProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<OpenState | null>(null);
+  const t = useT();
 
   const close = useCallback((value: boolean) => {
     setState((s) => {
@@ -80,8 +82,8 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
             kind: 'confirm',
             title: opts.title,
             message: opts.message,
-            confirmLabel: opts.confirmLabel ?? 'Confirm',
-            cancelLabel: opts.cancelLabel ?? 'Cancel',
+            confirmLabel: opts.confirmLabel ?? t('common.confirm'),
+            cancelLabel: opts.cancelLabel ?? t('common.cancel'),
             tone: opts.tone ?? 'default',
             resolve,
           }),
@@ -92,14 +94,14 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
             kind: 'notify',
             title: opts.title,
             message: opts.message,
-            confirmLabel: 'OK',
+            confirmLabel: t('common.ok'),
             cancelLabel: '',
             tone: opts.tone ?? 'info',
             resolve: () => resolve(),
           }),
         ),
     }),
-    [],
+    [t],
   );
 
   return (
@@ -120,7 +122,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={() => close(false)}
               className="absolute right-3 top-3 rounded-md p-1.5 text-ink-400 hover:bg-white/[0.06] hover:text-white"
-              aria-label="Close"
+              aria-label={t('common.close')}
             >
               <X className="h-4 w-4" />
             </button>

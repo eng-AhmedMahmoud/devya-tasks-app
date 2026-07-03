@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, UserRound, X } from 'lucide-react';
 import { api, type MeetingRequest } from '@/lib/api';
 import type { TeamMember } from '@/lib/types';
+import { useT } from '@/lib/i18n/client';
 
 export function AcceptRequestDialog({
   request,
@@ -12,6 +13,7 @@ export function AcceptRequestDialog({
   request: MeetingRequest;
   onClose: (changed: boolean) => void;
 }) {
+  const t = useT();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [ownerUserId, setOwnerUserId] = useState<string>('');
   const [customName, setCustomName] = useState<string>('');
@@ -31,7 +33,7 @@ export function AcceptRequestDialog({
     const acceptedByName =
       picked?.name?.trim() || picked?.email || customName.trim();
     if (!acceptedByName) {
-      setErr('Pick a team member or enter a name.');
+      setErr(t('meetings.acceptError'));
       return;
     }
     setBusy(true);
@@ -42,7 +44,7 @@ export function AcceptRequestDialog({
       });
       onClose(true);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Could not accept');
+      setErr(e instanceof Error ? e.message : t('meetings.acceptFailed'));
       setBusy(false);
     }
   }
@@ -52,9 +54,9 @@ export function AcceptRequestDialog({
       <div className="w-full max-w-lg surface-strong p-6 rounded-2xl">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Accept meeting request</h3>
+            <h3 className="text-lg font-semibold text-white">{t('meetings.acceptTitle')}</h3>
             <p className="text-sm text-ink-300 mt-1">
-              {request.clientName} · {formatWhen(request.scheduledAt)}
+              {t('meetings.acceptSubtitle', { name: request.clientName, when: formatWhen(request.scheduledAt) })}
             </p>
           </div>
           <button
@@ -67,7 +69,7 @@ export function AcceptRequestDialog({
         </div>
 
         <label className="block text-xs uppercase tracking-wider text-ink-400 mb-2">
-          Owner — who runs this meeting?
+          {t('meetings.acceptOwnerLabel')}
         </label>
         <div className="grid gap-1.5 max-h-56 overflow-y-auto pr-1">
           {team.map((m) => {
@@ -100,7 +102,7 @@ export function AcceptRequestDialog({
 
         <div className="mt-3">
           <label className="block text-xs uppercase tracking-wider text-ink-400 mb-1.5">
-            Or someone else
+            {t('meetings.orSomeoneElse')}
           </label>
           <input
             value={customName}
@@ -108,7 +110,7 @@ export function AcceptRequestDialog({
               setCustomName(e.target.value);
               setOwnerUserId('');
             }}
-            placeholder="Name"
+            placeholder={t('meetings.namePlaceholder')}
             className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-ink-500 focus:outline-none focus:border-white/30"
           />
         </div>
@@ -125,7 +127,7 @@ export function AcceptRequestDialog({
             onClick={() => onClose(false)}
             className="rounded-md border border-white/10 px-3 py-2 text-sm text-ink-200 hover:bg-white/5"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -134,7 +136,7 @@ export function AcceptRequestDialog({
             className="inline-flex items-center gap-2 rounded-md bg-emerald-500/30 border border-emerald-400/40 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-500/40 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Confirm meeting
+            {t('meetings.acceptSubmit')}
           </button>
         </div>
       </div>

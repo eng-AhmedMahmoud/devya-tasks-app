@@ -9,6 +9,7 @@ import type { AuthUser, Task, TeamMember } from '@/lib/types';
 import { useDialog } from '@/components/ui/dialog-provider';
 import { BulkToolbar, BULK_DELETE_ACTION } from '@/components/ui/bulk-toolbar';
 import type { BulkResult } from '@/components/ui/bulk-toolbar';
+import { useT } from '@/lib/i18n/client';
 import { MatrixInfo } from './matrix-info';
 import { Quadrant } from './quadrant';
 import { TaskCard } from './task-card';
@@ -24,6 +25,7 @@ interface MatrixViewProps {
 
 export function MatrixView({ user }: MatrixViewProps) {
   const dialog = useDialog();
+  const t = useT();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,11 +72,11 @@ export function MatrixView({ user }: MatrixViewProps) {
       setTasks(items);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+      setError(err instanceof Error ? err.message : t('matrix.failedToLoad'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void refresh();
@@ -119,9 +121,9 @@ export function MatrixView({ user }: MatrixViewProps) {
   const handleDelete = useCallback(
     async (task: Task) => {
       const ok = await dialog.confirm({
-        title: 'Delete this task?',
-        message: `"${task.title}" will be permanently removed.`,
-        confirmLabel: 'Delete',
+        title: t('detail.deleteTitle'),
+        message: t('detail.deleteMessage', { title: task.title }),
+        confirmLabel: t('common.delete'),
         tone: 'danger',
       });
       if (!ok) return;
@@ -131,13 +133,13 @@ export function MatrixView({ user }: MatrixViewProps) {
         await refresh();
       } catch (err) {
         await dialog.notify({
-          title: 'Could not delete',
-          message: err instanceof Error ? err.message : 'Unknown error',
+          title: t('detail.deleteFailed'),
+          message: err instanceof Error ? err.message : t('common.unknownError'),
           tone: 'danger',
         });
       }
     },
-    [dialog, refresh],
+    [dialog, refresh, t],
   );
 
   const handleEdit = useCallback((task: Task) => {
@@ -188,9 +190,12 @@ export function MatrixView({ user }: MatrixViewProps) {
       if (ids.length === 0) return;
 
       const ok = await dialog.confirm({
-        title: `Permanently delete ${ids.length} task${ids.length === 1 ? '' : 's'}?`,
-        message: 'This cannot be undone.',
-        confirmLabel: 'Delete',
+        title:
+          ids.length === 1
+            ? t('bulk.confirmTitleOne', { count: ids.length })
+            : t('bulk.confirmTitle', { count: ids.length }),
+        message: t('bulk.confirmMessage'),
+        confirmLabel: t('common.delete'),
         tone: 'danger',
       });
       if (!ok) return;
@@ -204,15 +209,15 @@ export function MatrixView({ user }: MatrixViewProps) {
         await refresh();
       } catch (err) {
         await dialog.notify({
-          title: 'Bulk delete failed',
-          message: err instanceof Error ? err.message : 'Unknown error',
+          title: t('bulk.failed'),
+          message: err instanceof Error ? err.message : t('common.unknownError'),
           tone: 'danger',
         });
       } finally {
         setBulkRunning(false);
       }
     },
-    [selectedIds, dialog, refresh],
+    [selectedIds, dialog, refresh, t],
   );
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -220,9 +225,9 @@ export function MatrixView({ user }: MatrixViewProps) {
     <>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Priority matrix</h1>
+          <h1 className="text-2xl font-semibold text-white">{t('matrix.title')}</h1>
           <p className="text-sm text-ink-400 mt-1">
-            Signed in as {user.name ?? user.email} · role: {user.role}
+            {t('matrix.signedInAs', { name: user.name ?? user.email, role: user.role })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -239,9 +244,9 @@ export function MatrixView({ user }: MatrixViewProps) {
               }
             >
               {batchMode ? (
-                <><CheckSquare className="h-4 w-4" /> Batch on</>
+                <><CheckSquare className="h-4 w-4" /> {t('matrix.batchOn')}</>
               ) : (
-                <><Square className="h-4 w-4" /> Batch</>
+                <><Square className="h-4 w-4" /> {t('matrix.batch')}</>
               )}
             </button>
           )}
@@ -250,21 +255,21 @@ export function MatrixView({ user }: MatrixViewProps) {
             className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
           >
             <ListPlus className="h-4 w-4" />
-            Insert daily tasks
+            {t('matrix.insertDaily')}
           </button>
           <a
             href="/templates"
             className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
           >
             <Repeat className="h-4 w-4" />
-            Add daily tasks
+            {t('matrix.addDaily')}
           </a>
           <Link
             href="/new"
             className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-medium text-ink-900 hover:bg-ink-200"
           >
             <Plus className="h-4 w-4" />
-            New task
+            {t('matrix.newTask')}
           </Link>
         </div>
       </div>
@@ -279,9 +284,9 @@ export function MatrixView({ user }: MatrixViewProps) {
         <section className="surface mb-4 border-blue-500/30">
           <div className="px-4 py-3 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 className="text-sm font-semibold text-white">Delayed tasks from before</h2>
+              <h2 className="text-sm font-semibold text-white">{t('matrix.delayedFromBefore')}</h2>
               <p className="text-xs text-ink-400 mt-0.5">
-                Carried over from earlier days. They stay here until marked Done or deleted.
+                {t('matrix.delayedFromBeforeSubtitle')}
               </p>
             </div>
             <span className="chip chip-delayed">{carriedOver.length}</span>
@@ -309,8 +314,8 @@ export function MatrixView({ user }: MatrixViewProps) {
       <div className="grid gap-4 lg:grid-cols-2">
         <Quadrant
           number={1}
-          title="Do"
-          subtitle="Important + Urgent"
+          title={t('matrix.quadrants.doTitle')}
+          subtitle={t('matrix.quadrants.doSubtitle')}
           accent="#EF4444"
           count={quadrantTasks.do.length}
           action={null}
@@ -318,12 +323,12 @@ export function MatrixView({ user }: MatrixViewProps) {
           <Renderer
             tasks={quadrantTasks.do}
             role={user.role}
-            onOpen={(t) => setOpenTaskId(t.id)}
+            onOpen={(task) => setOpenTaskId(task.id)}
             onMarkDone={handleMarkDone}
             onDelay={handleDelay}
             onDelete={handleDelete}
             onEdit={handleEdit}
-            emptyHint="Nothing here. That's a win."
+            emptyHint={t('matrix.quadrants.doEmpty')}
             batchMode={batchMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
@@ -331,8 +336,8 @@ export function MatrixView({ user }: MatrixViewProps) {
         </Quadrant>
         <Quadrant
           number={2}
-          title="Schedule"
-          subtitle="Important + Not Urgent"
+          title={t('matrix.quadrants.scheduleTitle')}
+          subtitle={t('matrix.quadrants.scheduleSubtitle')}
           accent="#3B82F6"
           count={quadrantTasks.schedule.length}
           action={null}
@@ -340,12 +345,12 @@ export function MatrixView({ user }: MatrixViewProps) {
           <Renderer
             tasks={quadrantTasks.schedule}
             role={user.role}
-            onOpen={(t) => setOpenTaskId(t.id)}
+            onOpen={(task) => setOpenTaskId(task.id)}
             onMarkDone={handleMarkDone}
             onDelay={handleDelay}
             onDelete={handleDelete}
             onEdit={handleEdit}
-            emptyHint="No long-game work scheduled."
+            emptyHint={t('matrix.quadrants.scheduleEmpty')}
             batchMode={batchMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
@@ -353,8 +358,8 @@ export function MatrixView({ user }: MatrixViewProps) {
         </Quadrant>
         <Quadrant
           number={3}
-          title="Delegate"
-          subtitle="Not Important + Urgent"
+          title={t('matrix.quadrants.delegateTitle')}
+          subtitle={t('matrix.quadrants.delegateSubtitle')}
           accent="#F59E0B"
           count={quadrantTasks.delegate.length}
           action={null}
@@ -362,12 +367,12 @@ export function MatrixView({ user }: MatrixViewProps) {
           <Renderer
             tasks={quadrantTasks.delegate}
             role={user.role}
-            onOpen={(t) => setOpenTaskId(t.id)}
+            onOpen={(task) => setOpenTaskId(task.id)}
             onMarkDone={handleMarkDone}
             onDelay={handleDelay}
             onDelete={handleDelete}
             onEdit={handleEdit}
-            emptyHint="Nothing to hand off."
+            emptyHint={t('matrix.quadrants.delegateEmpty')}
             batchMode={batchMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
@@ -375,8 +380,8 @@ export function MatrixView({ user }: MatrixViewProps) {
         </Quadrant>
         <Quadrant
           number={4}
-          title="Eliminate"
-          subtitle="Not Important + Not Urgent"
+          title={t('matrix.quadrants.eliminateTitle')}
+          subtitle={t('matrix.quadrants.eliminateSubtitle')}
           accent="#737373"
           count={quadrantTasks.eliminate.length}
           action={null}
@@ -384,12 +389,12 @@ export function MatrixView({ user }: MatrixViewProps) {
           <Renderer
             tasks={quadrantTasks.eliminate}
             role={user.role}
-            onOpen={(t) => setOpenTaskId(t.id)}
+            onOpen={(task) => setOpenTaskId(task.id)}
             onMarkDone={handleMarkDone}
             onDelay={handleDelay}
             onDelete={handleDelete}
             onEdit={handleEdit}
-            emptyHint="Clean."
+            emptyHint={t('matrix.quadrants.eliminateEmpty')}
             batchMode={batchMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
@@ -399,7 +404,7 @@ export function MatrixView({ user }: MatrixViewProps) {
 
       {loading && (
         <div className="mt-4 text-xs text-ink-500 inline-flex items-center gap-2">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Refreshing…
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('common.refreshing')}
         </div>
       )}
 
@@ -453,8 +458,11 @@ export function MatrixView({ user }: MatrixViewProps) {
         onInserted={async (count) => {
           setPickerOpen(false);
           await dialog.notify({
-            title: `Inserted ${count} task${count === 1 ? '' : 's'}`,
-            message: 'Selected templates added to today.',
+            title:
+              count === 1
+                ? t('picker.insertedTitleOne', { count })
+                : t('picker.insertedTitle', { count }),
+            message: t('picker.insertedMessage'),
             tone: 'success',
           });
           await refresh();

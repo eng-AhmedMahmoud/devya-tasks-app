@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { formatDeadline, formatDateTime } from '@/lib/dates';
 import type { Task, UserRole } from '@/lib/types';
+import { useT } from '@/lib/i18n/client';
 
 interface TaskCardProps {
   task: Task;
@@ -33,7 +34,8 @@ export function TaskCard({
   onToggleSelect,
 }: TaskCardProps) {
   const [menu, setMenu] = useState(false);
-  const ownerLabel = task.ownerUser?.name ?? task.ownerName ?? 'Unassigned';
+  const t = useT();
+  const ownerLabel = task.ownerUser?.name ?? task.ownerName ?? t('common.unassigned');
   const latestDelay = task.delays[0];
   const showDelayBadge = task.status === 'DELAYED' || task.delays.length > 0;
 
@@ -62,7 +64,7 @@ export function TaskCard({
               e.stopPropagation();
               onToggleSelect?.(task, e.shiftKey);
             }}
-            aria-label={selected ? 'Deselect task' : 'Select task'}
+            aria-label={selected ? t('task.deselectAria') : t('task.selectAria')}
             className="mt-0.5 shrink-0 rounded border border-white/20 h-4 w-4 flex items-center justify-center hover:border-blue-400 transition-colors"
             style={selected ? { background: '#3B82F6', borderColor: '#3B82F6' } : {}}
           >
@@ -82,22 +84,22 @@ export function TaskCard({
           <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
             {task.overdue && (
               <span className="chip chip-overdue">
-                <AlertTriangle className="h-3 w-3 mr-1" /> Overdue
+                <AlertTriangle className="h-3 w-3 mr-1" /> {t('task.overdue')}
               </span>
             )}
-            {task.urgent && !task.overdue && <span className="chip chip-urgent">Urgent</span>}
-            {task.important && <span className="chip chip-important">Important</span>}
+            {task.urgent && !task.overdue && <span className="chip chip-urgent">{t('task.urgent')}</span>}
+            {task.important && <span className="chip chip-important">{t('task.important')}</span>}
             {showDelayBadge && (
               <span className="chip chip-delayed">
-                <RotateCw className="h-3 w-3 mr-1" /> Delayed
+                <RotateCw className="h-3 w-3 mr-1" /> {t('task.delayed')}
               </span>
             )}
             {task.status === 'DONE' && (
               <span className="chip chip-done">
-                <CheckCircle2 className="h-3 w-3 mr-1" /> Done
+                <CheckCircle2 className="h-3 w-3 mr-1" /> {t('task.done')}
               </span>
             )}
-            {task.type === 'MEETING' && <span className="chip">Meeting</span>}
+            {task.type === 'MEETING' && <span className="chip">{t('task.meeting')}</span>}
           </div>
           <div className="text-sm font-medium text-white truncate">{task.title}</div>
           {task.description && (
@@ -115,7 +117,7 @@ export function TaskCard({
             {latestDelay && (
               <span className="inline-flex items-center gap-1 text-blue-300">
                 <Clock className="h-3 w-3" />
-                delayed {formatDateTime(latestDelay.delayedAt)}
+                {t('task.delayedAt', { when: formatDateTime(latestDelay.delayedAt) })}
               </span>
             )}
           </div>
@@ -131,7 +133,7 @@ export function TaskCard({
                 setMenu((v) => !v);
               }}
               className="rounded-md p-1 text-ink-400 hover:text-white hover:bg-white/[0.06]"
-              aria-label="Task actions"
+              aria-label={t('task.actionsAria')}
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -153,7 +155,7 @@ export function TaskCard({
                       }}
                       className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
                     >
-                      Mark done…
+                      {t('task.menuMarkDone')}
                     </button>
                   )}
                   {task.status !== 'DONE' && (
@@ -165,7 +167,7 @@ export function TaskCard({
                       }}
                       className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
                     >
-                      Delay…
+                      {t('task.menuDelay')}
                     </button>
                   )}
                   <button
@@ -176,7 +178,7 @@ export function TaskCard({
                     }}
                     className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
                   >
-                    View details
+                    {t('task.menuViewDetails')}
                   </button>
                   {role === 'SUPER_ADMIN' && onEdit && task.status !== 'DONE' && (
                     <button
@@ -187,7 +189,7 @@ export function TaskCard({
                       }}
                       className="block w-full text-left px-3 py-1.5 text-ink-200 hover:bg-white/[0.06]"
                     >
-                      Edit task…
+                      {t('task.menuEdit')}
                     </button>
                   )}
                   {role === 'SUPER_ADMIN' && (
@@ -199,7 +201,7 @@ export function TaskCard({
                       }}
                       className="block w-full text-left px-3 py-1.5 text-rose-300 hover:bg-white/[0.06]"
                     >
-                      Delete
+                      {t('task.menuDelete')}
                     </button>
                   )}
                 </div>

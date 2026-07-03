@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { DailyTemplate } from '@/lib/types';
+import { useT } from '@/lib/i18n/client';
 
 interface TemplatePickerDialogProps {
   open: boolean;
@@ -12,6 +13,7 @@ interface TemplatePickerDialogProps {
 }
 
 export function TemplatePickerDialog({ open, onClose, onInserted }: TemplatePickerDialogProps) {
+  const t = useT();
   const [templates, setTemplates] = useState<DailyTemplate[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -25,10 +27,10 @@ export function TemplatePickerDialog({ open, onClose, onInserted }: TemplatePick
     setLoading(true);
     api
       .listTemplates()
-      .then((items) => setTemplates(items.filter((t) => t.active)))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load'))
+      .then((items) => setTemplates(items.filter((tpl) => tpl.active)))
+      .catch((err) => setError(err instanceof Error ? err.message : t('matrix.failedToLoad')))
       .finally(() => setLoading(false));
-  }, [open]);
+  }, [open, t]);
 
   if (!open) return null;
 
@@ -41,13 +43,13 @@ export function TemplatePickerDialog({ open, onClose, onInserted }: TemplatePick
     });
   };
 
-  const selectAll = () => setSelected(new Set(templates.map((t) => t.id)));
+  const selectAll = () => setSelected(new Set(templates.map((tpl) => tpl.id)));
   const clearAll = () => setSelected(new Set());
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (selected.size === 0) {
-      setError('Pick at least one template');
+      setError(t('picker.pickAtLeastOne'));
       return;
     }
     setBusy(true);
@@ -56,7 +58,7 @@ export function TemplatePickerDialog({ open, onClose, onInserted }: TemplatePick
       const res = await api.insertTemplates([...selected]);
       onInserted(res.inserted);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to insert');
+      setError(err instanceof Error ? err.message : t('picker.insertFailed'));
     } finally {
       setBusy(false);
     }
@@ -73,39 +75,39 @@ export function TemplatePickerDialog({ open, onClose, onInserted }: TemplatePick
           type="button"
           onClick={onClose}
           className="absolute right-3 top-3 rounded-md p-1.5 text-ink-400 hover:bg-white/[0.06] hover:text-white"
-          aria-label="Close"
+          aria-label={t('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
         <div className="p-6 space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Insert daily tasks</h2>
-            <p className="text-sm text-ink-400 mt-1">Pick which templates to insert into today.</p>
+            <h2 className="text-lg font-semibold text-white">{t('picker.title')}</h2>
+            <p className="text-sm text-ink-400 mt-1">{t('picker.subtitle')}</p>
           </div>
           {loading ? (
             <div className="text-sm text-ink-400 inline-flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading templates…
+              <Loader2 className="h-4 w-4 animate-spin" /> {t('picker.loading')}
             </div>
           ) : templates.length === 0 ? (
-            <div className="text-sm text-ink-400">No active templates. Add one from "Add daily tasks".</div>
+            <div className="text-sm text-ink-400">{t('picker.emptyActive')}</div>
           ) : (
             <>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-ink-400">{selected.size} of {templates.length} selected</span>
+                <span className="text-ink-400">{t('picker.selectedOf', { selected: selected.size, total: templates.length })}</span>
                 <div className="flex gap-2">
                   <button type="button" onClick={selectAll} className="text-ink-300 hover:text-white underline">
-                    Select all
+                    {t('common.selectAll')}
                   </button>
                   <button type="button" onClick={clearAll} className="text-ink-300 hover:text-white underline">
-                    Clear
+                    {t('common.clear')}
                   </button>
                 </div>
               </div>
               <ul className="space-y-1 max-h-72 overflow-y-auto">
-                {templates.map((t) => {
-                  const checked = selected.has(t.id);
+                {templates.map((tpl) => {
+                  const checked = selected.has(tpl.id);
                   return (
-                    <li key={t.id}>
+                    <li key={tpl.id}>
                       <label
                         className={
                           'flex items-start gap-3 rounded-md border p-3 cursor-pointer ' +
@@ -117,19 +119,19 @@ export function TemplatePickerDialog({ open, onClose, onInserted }: TemplatePick
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={() => toggle(t.id)}
+                          onChange={() => toggle(tpl.id)}
                           className="mt-1"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-sm font-medium text-white">{t.title}</span>
-                            {t.important && <span className="chip chip-important">Important</span>}
+                            <span className="text-sm font-medium text-white">{tpl.title}</span>
+                            {tpl.important && <span className="chip chip-important">{t('task.important')}</span>}
                           </div>
-                          {t.description && (
-                            <div className="text-xs text-ink-400 mt-0.5 line-clamp-2">{t.description}</div>
+                          {tpl.description && (
+                            <div className="text-xs text-ink-400 mt-0.5 line-clamp-2">{tpl.description}</div>
                           )}
                           <div className="text-[11px] text-ink-500 mt-1">
-                            Owner: {t.ownerUser?.name ?? t.ownerName ?? '—'}
+                            {t('detail.owner')}: {tpl.ownerUser?.name ?? tpl.ownerName ?? '—'}
                           </div>
                         </div>
                       </label>
@@ -151,7 +153,7 @@ export function TemplatePickerDialog({ open, onClose, onInserted }: TemplatePick
             onClick={onClose}
             className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-sm text-ink-200 hover:bg-white/[0.05]"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -159,7 +161,11 @@ export function TemplatePickerDialog({ open, onClose, onInserted }: TemplatePick
             className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-1.5 text-sm font-medium text-ink-900 hover:bg-ink-200 disabled:opacity-60"
           >
             {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Insert {selected.size > 0 ? `${selected.size} task${selected.size > 1 ? 's' : ''}` : ''}
+            {selected.size === 0
+              ? t('picker.insert')
+              : selected.size === 1
+                ? t('picker.insertOne', { count: selected.size })
+                : t('picker.insertN', { count: selected.size })}
           </button>
         </div>
       </form>

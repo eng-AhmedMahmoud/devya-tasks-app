@@ -11,12 +11,13 @@ import { BulkToolbar, BULK_DELETE_ACTION } from '@/components/ui/bulk-toolbar';
 import type { BulkResult } from '@/components/ui/bulk-toolbar';
 import { cn } from '@/lib/utils';
 import type { Task, TaskStatus, UserRole } from '@/lib/types';
+import { useT } from '@/lib/i18n/client';
 
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  NEW: 'New',
-  IN_PROGRESS: 'In progress',
-  DONE: 'Done',
-  DELAYED: 'Delayed',
+const STATUS_KEYS: Record<TaskStatus, string> = {
+  NEW: 'tasks.statusNew',
+  IN_PROGRESS: 'tasks.statusInProgress',
+  DONE: 'tasks.statusDone',
+  DELAYED: 'tasks.statusDelayed',
 };
 
 interface TasksListClientProps {
@@ -46,6 +47,7 @@ export function TasksListClient({
 
   const dialog = useDialog();
   const router = useRouter();
+  const t = useT();
   const isSuperAdmin = role === 'SUPER_ADMIN';
 
   // ── Batch mode ────────────────────────────────────────────────────────────
@@ -62,7 +64,7 @@ export function TasksListClient({
     lastClickedIdx.current = -1;
   }, []);
 
-  const allVisibleIds = tasks.map((t) => t.id);
+  const allVisibleIds = tasks.map((tk) => tk.id);
 
   const handleToggleSelect = useCallback(
     (idx: number, taskId: string, shiftKey: boolean) => {
@@ -104,9 +106,12 @@ export function TasksListClient({
       if (ids.length === 0) return;
 
       const ok = await dialog.confirm({
-        title: `Permanently delete ${ids.length} task${ids.length === 1 ? '' : 's'}?`,
-        message: 'This cannot be undone.',
-        confirmLabel: 'Delete',
+        title:
+          ids.length === 1
+            ? t('bulk.confirmTitleOne', { count: ids.length })
+            : t('bulk.confirmTitle', { count: ids.length }),
+        message: t('bulk.confirmMessage'),
+        confirmLabel: t('common.delete'),
         tone: 'danger',
       });
       if (!ok) return;
@@ -120,15 +125,15 @@ export function TasksListClient({
         router.refresh();
       } catch (err) {
         await dialog.notify({
-          title: 'Bulk delete failed',
-          message: err instanceof Error ? err.message : 'Unknown error',
+          title: t('bulk.failed'),
+          message: err instanceof Error ? err.message : t('common.unknownError'),
           tone: 'danger',
         });
       } finally {
         setBulkRunning(false);
       }
     },
-    [selectedIds, dialog, router],
+    [selectedIds, dialog, router, t],
   );
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -149,9 +154,9 @@ export function TasksListClient({
             }
           >
             {batchMode ? (
-              <><CheckSquare className="h-4 w-4" /> Batch on</>
+              <><CheckSquare className="h-4 w-4" /> {t('matrix.batchOn')}</>
             ) : (
-              <><Square className="h-4 w-4" /> Batch</>
+              <><Square className="h-4 w-4" /> {t('matrix.batch')}</>
             )}
           </button>
         </div>
@@ -161,23 +166,23 @@ export function TasksListClient({
         <table className="w-full text-sm text-left">
           <thead>
             <tr className="border-b border-white/[0.06] text-ink-400">
-              {batchMode && <th className="px-4 py-3 w-10" aria-label="Select" />}
-              <th className="px-4 py-3 font-medium">Title</th>
-              <th className="px-4 py-3 font-medium">Owner</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Deadline</th>
-              <th className="px-4 py-3 font-medium">Scheduled</th>
+              {batchMode && <th className="px-4 py-3 w-10" aria-label={t('common.selectAll')} />}
+              <th className="px-4 py-3 font-medium">{t('tasks.colTitle')}</th>
+              <th className="px-4 py-3 font-medium">{t('tasks.colOwner')}</th>
+              <th className="px-4 py-3 font-medium">{t('tasks.colStatus')}</th>
+              <th className="px-4 py-3 font-medium">{t('tasks.colDeadline')}</th>
+              <th className="px-4 py-3 font-medium">{t('tasks.colScheduled')}</th>
             </tr>
           </thead>
           <tbody>
-            {tasks.map((t, idx) => {
-              const isSelected = selectedIds.has(t.id);
+            {tasks.map((tk, idx) => {
+              const isSelected = selectedIds.has(tk.id);
               return (
                 <tr
-                  key={t.id}
+                  key={tk.id}
                   onClick={
                     batchMode
-                      ? (e) => handleToggleSelect(idx, t.id, e.shiftKey)
+                      ? (e) => handleToggleSelect(idx, tk.id, e.shiftKey)
                       : undefined
                   }
                   className={cn(
@@ -207,18 +212,18 @@ export function TasksListClient({
                       </span>
                     </td>
                   )}
-                  <td className="px-4 py-3 text-white">{t.title}</td>
-                  <td className="px-4 py-3 text-ink-300">{t.ownerUser?.name ?? t.ownerName ?? '—'}</td>
-                  <td className="px-4 py-3 text-ink-300">{STATUS_LABELS[t.status]}</td>
-                  <td className="px-4 py-3 text-ink-300">{formatDeadline(t.deadlineAt, t.deadlineHasTime)}</td>
-                  <td className="px-4 py-3 text-ink-300">{formatDay(t.scheduledDay)}</td>
+                  <td className="px-4 py-3 text-white">{tk.title}</td>
+                  <td className="px-4 py-3 text-ink-300">{tk.ownerUser?.name ?? tk.ownerName ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-300">{t(STATUS_KEYS[tk.status])}</td>
+                  <td className="px-4 py-3 text-ink-300">{formatDeadline(tk.deadlineAt, tk.deadlineHasTime)}</td>
+                  <td className="px-4 py-3 text-ink-300">{formatDay(tk.scheduledDay)}</td>
                 </tr>
               );
             })}
             {tasks.length === 0 && (
               <tr>
                 <td colSpan={batchMode ? 6 : 5} className="text-center text-ink-500 py-10">
-                  No tasks found
+                  {t('tasks.empty')}
                 </td>
               </tr>
             )}
@@ -233,16 +238,16 @@ export function TasksListClient({
               href={pageHref(page - 1)}
               className="inline-flex items-center rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-ink-200 hover:bg-white/5"
             >
-              Previous
+              {t('common.previous')}
             </Link>
           ) : (
             <span className="inline-flex items-center rounded-md border border-white/5 px-3 py-1.5 text-ink-600">
-              Previous
+              {t('common.previous')}
             </span>
           )}
 
           <span className="text-ink-400">
-            Page {page} of {pageCount}
+            {t('tasks.pageOf', { page, total: pageCount })}
           </span>
 
           {page < pageCount ? (
@@ -250,11 +255,11 @@ export function TasksListClient({
               href={pageHref(page + 1)}
               className="inline-flex items-center rounded-md border border-white/10 bg-white/[0.02] px-3 py-1.5 text-ink-200 hover:bg-white/5"
             >
-              Next
+              {t('common.next')}
             </Link>
           ) : (
             <span className="inline-flex items-center rounded-md border border-white/5 px-3 py-1.5 text-ink-600">
-              Next
+              {t('common.next')}
             </span>
           )}
         </div>
@@ -277,7 +282,7 @@ export function TasksListClient({
       )}
 
       {/* subtitle: total tasks count */}
-      <p className="mt-3 text-xs text-ink-500">{total} total task{total === 1 ? '' : 's'}</p>
+      <p className="mt-3 text-xs text-ink-500">{t('tasks.totalCountFooter', { count: total })}</p>
     </div>
   );
 }

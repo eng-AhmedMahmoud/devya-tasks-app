@@ -13,6 +13,7 @@ import { TaskDetailDrawer } from './task-detail-drawer';
 import { CompleteDialog } from './complete-dialog';
 import { DelayDialog } from './delay-dialog';
 import { EditTaskDialog } from './edit-task-dialog';
+import { useT } from '@/lib/i18n/client';
 
 interface HistoryViewProps {
   role: UserRole;
@@ -20,6 +21,7 @@ interface HistoryViewProps {
 
 export function HistoryView({ role }: HistoryViewProps) {
   const dialog = useDialog();
+  const tr = useT();
   const [day, setDay] = useState(todayKey());
   const [data, setData] = useState<HistoryDay | null>(null);
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -64,11 +66,11 @@ export function HistoryView({ role }: HistoryViewProps) {
       const d = await api.historyForDay(day);
       setData(d);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+      setError(err instanceof Error ? err.message : tr('matrix.failedToLoad'));
     } finally {
       setLoading(false);
     }
-  }, [day]);
+  }, [day, tr]);
 
   useEffect(() => {
     void load();
@@ -83,9 +85,9 @@ export function HistoryView({ role }: HistoryViewProps) {
   const handleDelete = useCallback(
     async (task: Task) => {
       const ok = await dialog.confirm({
-        title: 'Delete this task?',
-        message: `"${task.title}" will be permanently removed.`,
-        confirmLabel: 'Delete',
+        title: tr('detail.deleteTitle'),
+        message: tr('detail.deleteMessage', { title: task.title }),
+        confirmLabel: tr('common.delete'),
         tone: 'danger',
       });
       if (!ok) return;
@@ -95,13 +97,13 @@ export function HistoryView({ role }: HistoryViewProps) {
         await load();
       } catch (err) {
         await dialog.notify({
-          title: 'Could not delete',
-          message: err instanceof Error ? err.message : 'Unknown error',
+          title: tr('detail.deleteFailed'),
+          message: err instanceof Error ? err.message : tr('common.unknownError'),
           tone: 'danger',
         });
       }
     },
-    [dialog, load],
+    [dialog, load, tr],
   );
 
   // Flat ordered list of all task ids for shift+click range
@@ -152,9 +154,12 @@ export function HistoryView({ role }: HistoryViewProps) {
       if (ids.length === 0) return;
 
       const ok = await dialog.confirm({
-        title: `Permanently delete ${ids.length} task${ids.length === 1 ? '' : 's'}?`,
-        message: 'This cannot be undone.',
-        confirmLabel: 'Delete',
+        title:
+          ids.length === 1
+            ? tr('bulk.confirmTitleOne', { count: ids.length })
+            : tr('bulk.confirmTitle', { count: ids.length }),
+        message: tr('bulk.confirmMessage'),
+        confirmLabel: tr('common.delete'),
         tone: 'danger',
       });
       if (!ok) return;
@@ -168,15 +173,15 @@ export function HistoryView({ role }: HistoryViewProps) {
         await load();
       } catch (err) {
         await dialog.notify({
-          title: 'Bulk delete failed',
-          message: err instanceof Error ? err.message : 'Unknown error',
+          title: tr('bulk.failed'),
+          message: err instanceof Error ? err.message : tr('common.unknownError'),
           tone: 'danger',
         });
       } finally {
         setBulkRunning(false);
       }
     },
-    [selectedIds, dialog, load],
+    [selectedIds, dialog, load, tr],
   );
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -184,8 +189,8 @@ export function HistoryView({ role }: HistoryViewProps) {
     <>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Daily history</h1>
-          <p className="text-sm text-ink-400 mt-1">Open a task to see full details, audit timeline, and act on it.</p>
+          <h1 className="text-2xl font-semibold text-white">{tr('history.title')}</h1>
+          <p className="text-sm text-ink-400 mt-1">{tr('history.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           {isSuperAdmin && (
@@ -201,16 +206,16 @@ export function HistoryView({ role }: HistoryViewProps) {
               }
             >
               {batchMode ? (
-                <><CheckSquare className="h-4 w-4" /> Batch on</>
+                <><CheckSquare className="h-4 w-4" /> {tr('matrix.batchOn')}</>
               ) : (
-                <><Square className="h-4 w-4" /> Batch</>
+                <><Square className="h-4 w-4" /> {tr('matrix.batch')}</>
               )}
             </button>
           )}
           <button
             onClick={() => setDay((d) => addDaysToKey(d, -1))}
             className="rounded-md border border-white/10 bg-white/[0.02] p-2 text-ink-200 hover:bg-white/[0.05]"
-            aria-label="Previous day"
+            aria-label={tr('history.prevDay')}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -225,7 +230,7 @@ export function HistoryView({ role }: HistoryViewProps) {
             onClick={() => setDay((d) => addDaysToKey(d, 1))}
             disabled={day >= todayKey()}
             className="rounded-md border border-white/10 bg-white/[0.02] p-2 text-ink-200 hover:bg-white/[0.05] disabled:opacity-40"
-            aria-label="Next day"
+            aria-label={tr('history.nextDay')}
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -233,41 +238,41 @@ export function HistoryView({ role }: HistoryViewProps) {
       </div>
 
       <div className="surface p-4 mb-6">
-        <div className="text-xs uppercase tracking-wider text-ink-400">Viewing</div>
+        <div className="text-xs uppercase tracking-wider text-ink-400">{tr('history.viewing')}</div>
         <div className="text-lg font-semibold text-white">{formatDay(`${day}T12:00:00Z`)}</div>
       </div>
 
       {loading && (
         <div className="text-sm text-ink-400 inline-flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          <Loader2 className="h-4 w-4 animate-spin" /> {tr('common.loading')}
         </div>
       )}
       {error && <div className="text-sm text-rose-300">{error}</div>}
       {data && (
         <div className="space-y-6">
           <Section
-            title="Created this day"
-            subtitle="Tasks created on this date (creation-day attribution)."
+            title={tr('history.sections.createdTitle')}
+            subtitle={tr('history.sections.createdSubtitle')}
             tasks={data.created}
-            onOpen={(t) => setOpenTaskId(t.id)}
+            onOpen={(task) => setOpenTaskId(task.id)}
             batchMode={batchMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
           />
           <Section
-            title="Delayed in"
-            subtitle="Tasks moved into this day from earlier days."
+            title={tr('history.sections.movedInTitle')}
+            subtitle={tr('history.sections.movedInSubtitle')}
             tasks={data.movedIn}
-            onOpen={(t) => setOpenTaskId(t.id)}
+            onOpen={(task) => setOpenTaskId(task.id)}
             batchMode={batchMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
           />
           <Section
-            title="Delayed out"
-            subtitle="Tasks from this day that were later postponed."
+            title={tr('history.sections.movedOutTitle')}
+            subtitle={tr('history.sections.movedOutSubtitle')}
             tasks={data.movedOut}
-            onOpen={(t) => setOpenTaskId(t.id)}
+            onOpen={(task) => setOpenTaskId(task.id)}
             batchMode={batchMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
@@ -350,6 +355,7 @@ function Section({
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string, shiftKey: boolean) => void;
 }) {
+  const tr = useT();
   return (
     <section>
       <header className="mb-2">
@@ -357,19 +363,19 @@ function Section({
         <p className="text-xs text-ink-400">{subtitle}</p>
       </header>
       {tasks.length === 0 ? (
-        <div className="surface px-4 py-4 text-sm text-ink-500">Nothing in this group.</div>
+        <div className="surface px-4 py-4 text-sm text-ink-500">{tr('history.emptyGroup')}</div>
       ) : (
         <ul className="space-y-2">
-          {tasks.map((t) => {
-            const isSelected = selectedIds?.has(t.id) ?? false;
+          {tasks.map((task) => {
+            const isSelected = selectedIds?.has(task.id) ?? false;
             return (
-              <li key={t.id}>
+              <li key={task.id}>
                 <button
                   onClick={(e) => {
                     if (batchMode && onToggleSelect) {
-                      onToggleSelect(t.id, e.shiftKey);
+                      onToggleSelect(task.id, e.shiftKey);
                     } else {
-                      onOpen(t);
+                      onOpen(task);
                     }
                   }}
                   className={cn(
@@ -396,15 +402,23 @@ function Section({
                     </span>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white font-medium truncate">{t.title}</div>
+                    <div className="text-sm text-white font-medium truncate">{task.title}</div>
                     <div className="text-xs text-ink-400 mt-0.5">
-                      Owner: {t.ownerUser?.name ?? t.ownerName ?? '—'} · Status: {t.status} · Quality: {t.quality}
+                      {tr('history.meta', {
+                        owner: task.ownerUser?.name ?? task.ownerName ?? '—',
+                        status: task.status,
+                        quality: task.quality,
+                      })}
                     </div>
                   </div>
-                  {t.delays.length > 0 && (
-                    <span className="chip chip-delayed">{t.delays.length} delay{t.delays.length > 1 ? 's' : ''}</span>
+                  {task.delays.length > 0 && (
+                    <span className="chip chip-delayed">
+                      {task.delays.length === 1
+                        ? tr('history.delayOne', { count: task.delays.length })
+                        : tr('history.delaysN', { count: task.delays.length })}
+                    </span>
                   )}
-                  {t.status === 'DONE' && <span className="chip chip-done">Done</span>}
+                  {task.status === 'DONE' && <span className="chip chip-done">{tr('task.done')}</span>}
                 </button>
               </li>
             );
