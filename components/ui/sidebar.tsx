@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ExternalLink,
   FileSignature,
+  FolderKanban,
   Grid2x2,
   History,
   LayoutGrid,
@@ -52,6 +53,9 @@ export function Sidebar() {
   const t = useT();
 
   const TOOL_NAV: ToolNavItem[] = [
+    ...(appConfig.pmUrl
+      ? [{ href: appConfig.pmUrl, labelKey: 'nav.pm', subKey: 'nav.pmSub', icon: FolderKanban }]
+      : []),
     ...(appConfig.salesUrl
       ? [{ href: appConfig.salesUrl, labelKey: 'nav.sales', subKey: 'nav.salesSub', icon: BarChart3 }]
       : []),

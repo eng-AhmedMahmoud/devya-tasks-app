@@ -4,6 +4,7 @@ export const appConfig = {
   bookingUrl: process.env.NEXT_PUBLIC_BOOKING_URL ?? '',
   contractsUrl: process.env.NEXT_PUBLIC_CONTRACTS_URL ?? 'https://contracts.devya-solutions.com',
   salesUrl: process.env.NEXT_PUBLIC_SALES_URL ?? 'https://sales.devya-solutions.com',
+  pmUrl: process.env.NEXT_PUBLIC_PM_URL ?? 'https://pm.devya-solutions.com',
   companyName: process.env.NEXT_PUBLIC_COMPANY_NAME ?? 'Devya Solutions',
   companyUrl: process.env.NEXT_PUBLIC_COMPANY_URL ?? 'https://www.devya.dev',
 };

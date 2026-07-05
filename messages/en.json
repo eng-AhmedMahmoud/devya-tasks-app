@@ -21,7 +21,9 @@
     "contracts": "Contracts",
     "contractsSub": "Template editor",
     "admin": "Admin & CMS",
-    "adminSub": "Bookings + content"
+    "adminSub": "Bookings + content",
+    "pm": "Projects (PM)",
+    "pmSub": "Sprints + releases"
   },
   "common": {
     "cancel": "Cancel",
