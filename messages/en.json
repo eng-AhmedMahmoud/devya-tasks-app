@@ -64,7 +64,15 @@
     "submit": "Sign in",
     "invalidCredentials": "Invalid credentials",
     "networkError": "Could not reach the server",
-    "help": "Trouble signing in? Contact your administrator."
+    "help": "Trouble signing in? Contact your administrator.",
+    "verifyNotice": "We emailed a 6-digit code to {email}. Enter it below to verify this account.",
+    "verifyCode": "Verification code",
+    "verifySubmit": "Verify & sign in",
+    "codeInvalid": "Code is invalid or expired",
+    "resend": "Resend code",
+    "resent": "A new code was sent to {email}.",
+    "resendFailed": "Could not resend the code. Try again in a minute.",
+    "backToSignIn": "Back to sign in"
   },
   "matrix": {
     "title": "Priority matrix",

@@ -148,6 +148,21 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   logout: () => apiFetch<void>('/api/auth/logout', { method: 'POST' }),
+  verifyResetOtp: (email: string, code: string) =>
+    apiFetch<{ resetToken: string }>('/api/auth/verify-reset-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    }),
+  verifyEmail: (email: string, code: string) =>
+    apiFetch<{ ok: true }>('/api/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    }),
+  resendVerification: (email: string) =>
+    apiFetch<{ ok: true }>('/api/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
 
   team: (cookieHeader?: string) =>
     apiFetch<TeamMember[]>('/api/admin/task-team/members', { cookieHeader }),
