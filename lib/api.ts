@@ -41,14 +41,20 @@ export async function apiFetch<T>(path: string, init?: RequestInit & { cookieHea
     try {
       body = await res.json();
     } catch {}
-    const message =
-      body && typeof body === 'object' && 'error' in body && typeof (body as { error?: unknown }).error === 'string'
-        ? (body as { error: string }).error
-        : `Request failed with ${res.status}`;
-    throw new ApiError(res.status, body, message);
+    // NestJS error bodies are { message, error, statusCode } — `message` carries
+    // the specific code (e.g. EMAIL_NOT_VERIFIED); `error` is just the status name.
+    throw new ApiError(res.status, body, extractErrorMessage(body) ?? `Request failed with ${res.status}`);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+function extractErrorMessage(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null;
+  const { message, error } = body as { message?: unknown; error?: unknown };
+  if (typeof message === 'string' && message) return message;
+  if (Array.isArray(message) && typeof message[0] === 'string') return message[0];
+  return typeof error === 'string' && error ? error : null;
 }
 
 export interface CreateTaskPayload {
@@ -145,7 +151,8 @@ export const api = {
   login: (email: string, password: string) =>
     apiFetch<{ user: AuthUser }>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      // `app` drives the backend's per-app access gate for this app.
+      body: JSON.stringify({ email, password, app: 'tasks' }),
     }),
   logout: () => apiFetch<void>('/api/auth/logout', { method: 'POST' }),
   verifyResetOtp: (email: string, code: string) =>
