@@ -4,7 +4,7 @@ import { api, ApiError } from '@/lib/api';
 import { Shell } from '@/components/ui/shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { TasksListClient } from '@/components/tasks/tasks-list-client';
-import type { TaskStatus } from '@/lib/types';
+import type { TaskStatus, UserRole } from '@/lib/types';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionary';
 
@@ -17,7 +17,7 @@ export default async function TasksListPage({
 }) {
   const cookieHeader = (await headers()).get('cookie') ?? '';
 
-  let role: 'ADMIN' | 'SUPER_ADMIN' | 'TEAM' = 'ADMIN';
+  let role: UserRole = 'ADMIN';
   try {
     const { user } = await api.me(cookieHeader);
     role = user.role;
@@ -37,7 +37,7 @@ export default async function TasksListPage({
   const subtitle = dict.tasks.totalCount.replace('{count}', String(total));
 
   return (
-    <Shell>
+    <Shell role={role}>
       <PageHeader title={dict.tasks.title} subtitle={subtitle} />
       <TasksListClient
         tasks={tasks}

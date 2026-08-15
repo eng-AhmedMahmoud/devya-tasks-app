@@ -4,6 +4,7 @@ import { api, ApiError } from '@/lib/api';
 import { Shell } from '@/components/ui/shell';
 import { MatrixView } from '@/components/tasks/matrix-view';
 import { MeetingRequestsBar } from '@/components/bookings/meeting-requests-bar';
+import { isManagerRole } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,8 @@ export default async function HomePage() {
   try {
     const { user } = await api.me(cookieHeader);
     return (
-      <Shell>
-        <MeetingRequestsBar />
+      <Shell role={user.role}>
+        {isManagerRole(user.role) && <MeetingRequestsBar />}
         <MatrixView user={user} />
       </Shell>
     );

@@ -21,6 +21,7 @@ import { DevyaLogo } from './devya-logo';
 import { LocaleToggle } from './locale-toggle';
 import { api } from '@/lib/api';
 import { appConfig } from '@/lib/config';
+import { isManagerRole, type UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/client';
 
@@ -29,14 +30,15 @@ interface NavItem {
   labelKey: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
+  managerOnly?: boolean;
 }
 
 const PRIMARY_NAV: NavItem[] = [
   { href: '/', labelKey: 'nav.matrix', icon: Grid2x2, exact: true },
   { href: '/tasks', labelKey: 'nav.allTasks', icon: ListChecks },
-  { href: '/templates', labelKey: 'nav.templates', icon: Repeat },
+  { href: '/templates', labelKey: 'nav.templates', icon: Repeat, managerOnly: true },
   { href: '/history', labelKey: 'nav.history', icon: History },
-  { href: '/assessment', labelKey: 'nav.assessment', icon: LayoutGrid },
+  { href: '/assessment', labelKey: 'nav.assessment', icon: LayoutGrid, managerOnly: true },
 ];
 
 interface ToolNavItem {
@@ -46,7 +48,9 @@ interface ToolNavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export function Sidebar() {
+export function Sidebar({ role }: { role?: UserRole }) {
+  const isManager = role ? isManagerRole(role) : false;
+  const navItems = PRIMARY_NAV.filter((item) => !item.managerOnly || isManager);
   const pathname = usePathname();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -99,7 +103,7 @@ export function Sidebar() {
             {t('shell.workspace')}
           </div>
           <ul className="space-y-0.5">
-            {PRIMARY_NAV.map((item) => (
+            {navItems.map((item) => (
               <NavLink key={item.labelKey} item={item} active={isActive(item)} label={t(item.labelKey)} />
             ))}
           </ul>

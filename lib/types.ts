@@ -1,4 +1,16 @@
-export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'TEAM';
+export type UserRole =
+  | 'ADMIN'
+  | 'SUPER_ADMIN'
+  | 'TEAM'
+  | 'SALES_REP'
+  | 'SALES_MANAGER'
+  | 'MARKETING'
+  | 'PR';
+
+/** Admins manage the whole board; everyone else only sees their own tasks. */
+export function isManagerRole(role: UserRole): boolean {
+  return role === 'SUPER_ADMIN' || role === 'ADMIN';
+}
 export type TaskType = 'NORMAL' | 'MEETING';
 export type TaskStatus = 'NEW' | 'IN_PROGRESS' | 'DONE' | 'DELAYED';
 export type TaskQuality = 'UNRATED' | 'LOW' | 'HIGH';

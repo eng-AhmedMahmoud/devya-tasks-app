@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { CheckSquare, ListPlus, Loader2, Plus, Repeat, Sparkles, Square } from 'lucide-react';
 import { api } from '@/lib/api';
 import { todayKey } from '@/lib/dates';
-import type { AuthUser, Task, TeamMember } from '@/lib/types';
+import { isManagerRole, type AuthUser, type Task, type TeamMember } from '@/lib/types';
 import { useDialog } from '@/components/ui/dialog-provider';
 import { BulkToolbar, BULK_DELETE_ACTION } from '@/components/ui/bulk-toolbar';
 import type { BulkResult } from '@/components/ui/bulk-toolbar';
@@ -39,6 +39,7 @@ export function MatrixView({ user }: MatrixViewProps) {
 
   // ── Batch mode ────────────────────────────────────────────────────────────
   const isSuperAdmin = user.role === 'SUPER_ADMIN';
+  const isManager = isManagerRole(user.role);
   const [batchMode, setBatchMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
@@ -250,27 +251,31 @@ export function MatrixView({ user }: MatrixViewProps) {
               )}
             </button>
           )}
-          <button
-            onClick={() => setPickerOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
-          >
-            <ListPlus className="h-4 w-4" />
-            {t('matrix.insertDaily')}
-          </button>
-          <a
-            href="/templates"
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
-          >
-            <Repeat className="h-4 w-4" />
-            {t('matrix.addDaily')}
-          </a>
-          <Link
-            href="/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-medium text-ink-900 hover:bg-ink-200"
-          >
-            <Plus className="h-4 w-4" />
-            {t('matrix.newTask')}
-          </Link>
+          {isManager && (
+            <>
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
+              >
+                <ListPlus className="h-4 w-4" />
+                {t('matrix.insertDaily')}
+              </button>
+              <a
+                href="/templates"
+                className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-ink-200 hover:bg-white/[0.05]"
+              >
+                <Repeat className="h-4 w-4" />
+                {t('matrix.addDaily')}
+              </a>
+              <Link
+                href="/new"
+                className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-medium text-ink-900 hover:bg-ink-200"
+              >
+                <Plus className="h-4 w-4" />
+                {t('matrix.newTask')}
+              </Link>
+            </>
+          )}
         </div>
       </div>
 

@@ -11,7 +11,7 @@ export default async function HistoryPage() {
   try {
     const { user } = await api.me(cookieHeader);
     return (
-      <Shell>
+      <Shell role={user.role}>
         <HistoryView role={user.role} />
       </Shell>
     );
