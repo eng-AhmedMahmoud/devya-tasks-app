@@ -9,6 +9,10 @@ services:
     image: node:24.22.1-alpine
     container_name: devya-tasks-app
     restart: unless-stopped
+    # The default bridge, not a per-project network: the VPS ran out of Docker
+    # address pools. Ports stay 127.0.0.1-bound; the backend is reached by its
+    # public URL.
+    network_mode: bridge
     user: node
     working_dir: /app
     command: ["node", "server.js"]
