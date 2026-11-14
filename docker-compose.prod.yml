@@ -14,6 +14,9 @@ services:
     command: ["node", "server.js"]
     volumes:
       - ./current:/app:ro
+    # The release is read-only; Next writes its image/fetch cache here.
+    tmpfs:
+      - /app/.next/cache:size=64m,uid=1000,gid=1000,mode=0755
     env_file:
       - production.env
     environment:

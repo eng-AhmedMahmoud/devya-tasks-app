@@ -69,14 +69,15 @@ fi
 bad="$(find "$REL" -name '*.node' -exec file {} + | grep -v 'ELF 64-bit LSB.*x86-64' || true)"
 if [ -n "$bad" ]; then echo "deploy: native modules not built for linux x86-64:" >&2; echo "$bad" >&2; exit 1; fi
 echo "$SHA" > "$REL/REVISION"
+mkdir -p "$REL/.next/cache"   # mount point for the container's tmpfs cache
 du -sh "$REL" | sed 's/^/deploy: release size /'
 
-tar -C "$REL" -czf - . \
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$REL" -czf - . \
   | ssh "$VPS" "set -e; rm -rf '${DIR:?}/releases/$SHA'; mkdir -p '$DIR/releases/$SHA'; tar -xzf - --no-same-owner -C '$DIR/releases/$SHA'"
 mkdir "$WORK/ship"
 cp docker-compose.prod.yml "$WORK/ship/"
 cp deploy/production.env "$WORK/ship/production.env"
-tar -C "$WORK/ship" -cf - . | ssh "$VPS" "tar -xf - --no-same-owner -C '$DIR'"
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$WORK/ship" -cf - . | ssh "$VPS" "tar -xf - --no-same-owner -C '$DIR'"
 
 # One string argument, not a script on stdin: stdin stays /dev/null so nothing
 # in the remote steps can swallow the rest of the script.
@@ -88,7 +89,7 @@ ls -1t releases | tail -n +4 | while read -r old; do
   if [ -n \"\$old\" ] && [ \"\$old\" != '$SHA' ]; then rm -rf \"releases/\$old\"; fi
 done
 for i in \$(seq 1 40); do
-  if curl -fsS -o /dev/null -m 5 'http://127.0.0.1:$PORT$CHECK_PATH'; then echo 'deploy: container answers on 127.0.0.1:$PORT'; exit 0; fi
+  if curl -fs -o /dev/null -m 5 'http://127.0.0.1:$PORT$CHECK_PATH'; then echo 'deploy: container answers on 127.0.0.1:$PORT'; exit 0; fi
   sleep 3
 done
 echo 'deploy: no answer on 127.0.0.1:$PORT after 120s' >&2
