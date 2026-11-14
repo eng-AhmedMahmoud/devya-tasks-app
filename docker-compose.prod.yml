@@ -1,0 +1,37 @@
+# Runtime for devya-tasks-app on the Devya VPS (/home/devya/projects/devya-tasks-app).
+# Nothing builds on the VPS: scripts/deploy.sh builds the Next standalone server
+# on the Mac, ships it to releases/<sha>, points `current` at it and runs
+# `docker compose up -d`. This file only runs that output on the stock Node
+# image. nginx (/etc/nginx/sites-available/devya-tasks-app) proxies
+# tasks.devya-solutions.com to 127.0.0.1:3173.
+services:
+  tasks-app:
+    image: node:24.22.1-alpine
+    container_name: devya-tasks-app
+    restart: unless-stopped
+    user: node
+    working_dir: /app
+    command: ["node", "server.js"]
+    volumes:
+      - ./current:/app:ro
+    # The release is read-only; Next writes its image/fetch cache here.
+    tmpfs:
+      - /app/.next/cache:size=64m,uid=1000,gid=1000,mode=0755
+    env_file:
+      - production.env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      # Loopback only: nginx is the public entry. Without the 127.0.0.1 prefix
+      # Docker publishes on 0.0.0.0, which ufw does not filter.
+      - "127.0.0.1:3173:3000"
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
