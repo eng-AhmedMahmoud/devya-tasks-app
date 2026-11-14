@@ -64,14 +64,22 @@ REL="$WORK/release"
 mv .next/standalone "$REL"
 [ -d public ] && cp -R public "$REL/public"
 cp -R .next/static "$REL/.next/static"
-if [ -d "$REL/node_modules/sharp" ]; then
-  sharp_ver="$(node -p "require('$REL/node_modules/sharp/package.json').version")"
-  mkdir "$WORK/sharp"
-  npm install --prefix "$WORK/sharp" --no-save --no-package-lock --no-audit --no-fund \
-    --os=linux --libc=musl --cpu=x64 "sharp@$sharp_ver" >/dev/null
-  rm -rf "$REL"/node_modules/@img/sharp-*
-  cp -R "$WORK"/sharp/node_modules/@img/sharp-*linuxmusl-x64 "$REL/node_modules/@img/"
-fi
+# Every copy of sharp in the traced tree (Next can carry its own under
+# node_modules/next/node_modules) gets the linux-musl-x64 build of its version
+# in the @img folder beside it.
+while read -r pj; do
+  nm="$(dirname "$(dirname "$pj")")"
+  ver="$(node -p "require('$pj').version")"
+  dl="$WORK/sharp-$ver"
+  if [ ! -d "$dl" ]; then
+    mkdir -p "$dl"
+    npm install --prefix "$dl" --no-save --no-package-lock --no-audit --no-fund \
+      --os=linux --libc=musl --cpu=x64 "sharp@$ver" >/dev/null
+  fi
+  rm -rf "$nm"/@img/sharp-*
+  mkdir -p "$nm/@img"
+  cp -R "$dl"/node_modules/@img/sharp-*linuxmusl-x64 "$nm/@img/"
+done < <(find "$REL" -path '*/node_modules/sharp/package.json')
 bad="$(find "$REL" -name '*.node' -exec file {} + | grep -v 'ELF 64-bit LSB.*x86-64' || true)"
 if [ -n "$bad" ]; then echo "deploy: native modules not built for linux x86-64:" >&2; echo "$bad" >&2; exit 1; fi
 rmdir "$LOCK"
