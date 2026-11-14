@@ -7,7 +7,9 @@
     "dev:raw": "next dev",
     "build": "next build",
     "start": "portless tasks next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "clsx": "^2.1.1",

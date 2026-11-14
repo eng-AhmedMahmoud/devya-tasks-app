@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.github
+Dockerfile
+.dockerignore
+docker-compose*.yml
+npm-debug.log*
+.env
+.env.*
+!.env.example
+README.md
+e2e
+e2e-shots
+coverage

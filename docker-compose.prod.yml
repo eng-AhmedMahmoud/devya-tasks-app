@@ -1,0 +1,36 @@
+# Production stack for devya-tasks-app on the Devya VPS
+# (/home/devya/projects/devya-tasks-app), deployed by scripts/deploy.sh. nginx
+# (/etc/nginx/sites-available/devya-tasks-app) proxies tasks.devya-solutions.com
+# to 127.0.0.1:3173.
+#
+# The values below are public config, not secrets. NEXT_PUBLIC_* are inlined
+# into the browser bundle and the /api rewrite target is baked in at build
+# time, so each goes in as a build arg and as runtime env.
+x-config: &config
+  API_PROXY_TARGET: "https://api.devya-solutions.com"
+  SESSION_COOKIE_NAME: "devya_session"
+  NEXT_PUBLIC_API_URL: "https://tasks.devya-solutions.com"
+  NEXT_PUBLIC_ADMIN_URL: "https://admin.devya-solutions.com"
+  NEXT_PUBLIC_BOOKING_URL: "https://booking.devya.dev"
+
+services:
+  tasks-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args: *config
+    image: devya-tasks-app:latest
+    container_name: devya-tasks-app
+    restart: unless-stopped
+    environment: *config
+    ports:
+      # Loopback only: nginx is the public entry. Without the 127.0.0.1 prefix
+      # Docker publishes on 0.0.0.0, which ufw does not filter.
+      - "127.0.0.1:3173:3000"
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
