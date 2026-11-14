@@ -78,20 +78,22 @@ backend (default `https://api.localhost` in dev).
 
 ## Hosting
 
-Production runs on the Devya VPS (`72.61.81.59`) as the Docker container `devya-tasks-app`
-on `127.0.0.1:3173`, behind nginx (`/etc/nginx/sites-available/devya-tasks-app`, TLS by
+Production runs on the Devya VPS (`72.61.81.59`) as the container `devya-tasks-app` on
+`127.0.0.1:3173`, behind nginx (`/etc/nginx/sites-available/devya-tasks-app`, TLS by
 certbot) for `tasks.devya-solutions.com`. The app left Vercel after the account pause of
 2026-11-13; the Vercel project stays, unused.
 
-- Config: `docker-compose.prod.yml` holds every value, all public config (API proxy
-  target `https://api.devya-solutions.com`, cookie settings, cross-app URLs).
-  `NEXT_PUBLIC_*` are inlined at build time, so a change needs a redeploy.
+- Nothing builds on the VPS. `npm run deploy` (`scripts/deploy.sh`) builds the Next
+  standalone server on the Mac from `origin/main`, swaps in Linux sharp binaries,
+  ships it to `/home/devya/projects/devya-tasks-app/releases/<sha>`, points `current` at it
+  and runs `docker compose up -d` there (stock `node:24.22.1-alpine`, release
+  mounted read-only). A push does not deploy. Roll back by pointing `current` at an
+  older release (command in the script header); the last 3 are kept.
+- Config: `deploy/production.env`, all public config (API proxy target
+  `https://api.devya-solutions.com`, cookie settings, cross-app URLs). It feeds the
+  build (`NEXT_PUBLIC_*` are inlined) and is the container's runtime env.
 - Browser calls stay on this app's origin: `/api/*` is rewritten to the backend, so
   the session cookie stays first-party.
 - Merge gate: Jenkins `continuous-integration/jenkins/pr-head`, which runs
   `bash scripts/ci-local.sh` (lint, typecheck, build). Run the same script locally when
-  Jenkins is down.
-- Deploy: `npm run deploy` (`scripts/deploy.sh`) after merging. It ships `origin/main`,
-  builds the image on the VPS under the shared build lock, swaps the container and
-  checks the public hosts. A push does not deploy. The previous tree stays at
-  `/home/devya/projects/devya-tasks-app.prev` for a rollback (command in the script header).
+  Jenkins is down or queued.

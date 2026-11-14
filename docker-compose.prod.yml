@@ -1,28 +1,26 @@
-# Production stack for devya-tasks-app on the Devya VPS
-# (/home/devya/projects/devya-tasks-app), deployed by scripts/deploy.sh. nginx
-# (/etc/nginx/sites-available/devya-tasks-app) proxies tasks.devya-solutions.com
-# to 127.0.0.1:3173.
-#
-# The values below are public config, not secrets. NEXT_PUBLIC_* are inlined
-# into the browser bundle and the /api rewrite target is baked in at build
-# time, so each goes in as a build arg and as runtime env.
-x-config: &config
-  API_PROXY_TARGET: "https://api.devya-solutions.com"
-  SESSION_COOKIE_NAME: "devya_session"
-  NEXT_PUBLIC_API_URL: "https://tasks.devya-solutions.com"
-  NEXT_PUBLIC_ADMIN_URL: "https://admin.devya-solutions.com"
-  NEXT_PUBLIC_BOOKING_URL: "https://booking.devya.dev"
-
+# Runtime for devya-tasks-app on the Devya VPS (/home/devya/projects/devya-tasks-app).
+# Nothing builds on the VPS: scripts/deploy.sh builds the Next standalone server
+# on the Mac, ships it to releases/<sha>, points `current` at it and runs
+# `docker compose up -d`. This file only runs that output on the stock Node
+# image. nginx (/etc/nginx/sites-available/devya-tasks-app) proxies
+# tasks.devya-solutions.com to 127.0.0.1:3173.
 services:
   tasks-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args: *config
-    image: devya-tasks-app:latest
+    image: node:24.22.1-alpine
     container_name: devya-tasks-app
     restart: unless-stopped
-    environment: *config
+    user: node
+    working_dir: /app
+    command: ["node", "server.js"]
+    volumes:
+      - ./current:/app:ro
+    env_file:
+      - production.env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: "1"
     ports:
       # Loopback only: nginx is the public entry. Without the 127.0.0.1 prefix
       # Docker publishes on 0.0.0.0, which ufw does not filter.
@@ -33,4 +31,4 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 25s
+      start_period: 15s
