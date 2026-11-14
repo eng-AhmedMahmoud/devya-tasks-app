@@ -30,13 +30,17 @@ CHECK_PATH=/login
 HOST_BUILD_ENV=""   # VPS file with build-time values kept out of git
 REF="${DEPLOY_REF:-origin/main}"
 
-# Mac pacing: wait while the 1-minute load is above 15.
-while [ "$(sysctl -n vm.loadavg 2>/dev/null | awk '{print int($2)}')" -gt 15 ] 2>/dev/null; do sleep 20; done
-
 git fetch -q origin
 SHA="$(git rev-parse --short=12 "$REF")"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/$APP-deploy.XXXXXX")"
 trap 'rm -rf "${WORK:?}"' EXIT
+
+# Mac pacing (shared by every agent on this Mac): wait for the 1-minute load to
+# drop below 15, then hold the build lock only for npm ci + next build.
+LOCK=/tmp/vx-mac-build.lock
+while [ "$(sysctl -n vm.loadavg 2>/dev/null | awk '{print int($2)}')" -ge 15 ] 2>/dev/null; do sleep 20; done
+until mkdir "$LOCK" 2>/dev/null; do sleep 20; done
+trap 'rmdir "$LOCK" 2>/dev/null; rm -rf "${WORK:?}"' EXIT
 echo "deploy: building $APP @ $SHA locally in $WORK"
 
 mkdir "$WORK/src"
@@ -70,6 +74,8 @@ if [ -d "$REL/node_modules/sharp" ]; then
 fi
 bad="$(find "$REL" -name '*.node' -exec file {} + | grep -v 'ELF 64-bit LSB.*x86-64' || true)"
 if [ -n "$bad" ]; then echo "deploy: native modules not built for linux x86-64:" >&2; echo "$bad" >&2; exit 1; fi
+rmdir "$LOCK"
+trap 'rm -rf "${WORK:?}"' EXIT
 echo "$SHA" > "$REL/REVISION"
 mkdir -p "$REL/.next/cache"   # mount point for the container's tmpfs cache
 du -sh "$REL" | sed 's/^/deploy: release size /'
