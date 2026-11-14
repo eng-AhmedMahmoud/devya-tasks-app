@@ -52,7 +52,9 @@ GIT_SHA="$SHA"
 NEXT_TELEMETRY_DISABLED=1
 set +a
 npm ci --no-audit --no-fund
-npx next build
+# Turbopack's next/font/google download fails now and then ("queries have
+# exactly one entry"); a second run goes through.
+npx next build || { echo "deploy: next build failed, retrying once" >&2; npx next build; }
 
 REL="$WORK/release"
 mv .next/standalone "$REL"
