@@ -62,8 +62,15 @@ npx next build || { echo "deploy: next build failed, retrying once" >&2; npx nex
 
 REL="$WORK/release"
 mv .next/standalone "$REL"
-[ -d public ] && cp -R public "$REL/public"
-cp -R .next/static "$REL/.next/static"
+# Copy contents, not directories: the standalone tree can already hold a partial
+# .next/static, and copying the directory onto it nests everything in .next/static/static,
+# so every page's JS 404s (the devya.dev splash outage, 2026-11-15).
+mkdir -p "$REL/.next/static"
+cp -R .next/static/. "$REL/.next/static/"
+if [ -d public ]; then mkdir -p "$REL/public"; cp -R public/. "$REL/public/"; fi
+if [ -e "$REL/.next/static/static" ] || [ -e "$REL/public/public" ]; then
+  echo "deploy: static or public copied into a nested directory" >&2; exit 1
+fi
 # Every copy of sharp in the traced tree (Next can carry its own under
 # node_modules/next/node_modules) gets the linux-musl-x64 build of its version
 # in the @img folder beside it.
@@ -111,6 +118,17 @@ done
 echo 'deploy: no answer on 127.0.0.1:$PORT after 120s' >&2
 docker logs --tail 60 '$APP' >&2
 exit 1" </dev/null
+
+# A 200 page is not a working page: every /_next/static asset it references must
+# load too (a nested static copy left devya.dev on its splash screen, 2026-11-15).
+ssh "$VPS" "missing=0 total=0
+for a in \$(curl -s -m 15 'http://127.0.0.1:$PORT$CHECK_PATH' | grep -oE '(src|href)=\"/_next/static/[^\"]+' | cut -d'\"' -f2 | sort -u); do
+  total=\$((total + 1))
+  code=\$(curl -s -o /dev/null -m 15 -w '%{http_code}' \"http://127.0.0.1:$PORT\$a\" || true)
+  if [ \"\$code\" != 200 ]; then echo \"deploy: \$a -> \$code\" >&2; missing=\$((missing + 1)); fi
+done
+echo \"deploy: $CHECK_PATH references \$total static assets, \$missing missing\"
+[ \"\$total\" -gt 0 ] && [ \"\$missing\" = 0 ]" </dev/null
 
 # Through nginx on the box: HTTPS once the certificate exists (pending-certs
 # issues it after DNS points here), plain HTTP before that.
